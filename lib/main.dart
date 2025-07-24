@@ -9,6 +9,7 @@ import 'screens/profile_setup_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/write_diary_screen.dart';
 import 'screens/my_page_screen.dart';
+import 'screens/diary_list_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // 비동기 초기화 준비
@@ -47,6 +48,7 @@ class MyApp extends StatelessWidget {
         '/profile':(context) => const ProfileSetupScreen(),
         '/home':   (context) => const HomeScreen(),
         '/write':  (context) => const WriteDiaryScreen(),
+        '/diary_list': (context) => const DiaryListScreen(),
         '/mypage': (context) => const MyPageScreen(),
       },
     );
