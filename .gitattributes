@@ -1,0 +1,3 @@
+# 생성·빌드 산출물 폴더를 언어 통계에서 제외
+web/** linguist-vendored
+doc/api/** linguist-vendored
