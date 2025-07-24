@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265467734059",
+    "project_id": "doran-22f29",
+    "storage_bucket": "doran-22f29.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265467734059:android:4f7ebfb32cc813f643a26e",
+        "android_client_info": {
+          "package_name": "com.example.haru_diary"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5a1qsRmftEmeduUKzdgBox9FX313HDFY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
