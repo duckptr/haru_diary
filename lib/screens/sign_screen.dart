@@ -22,10 +22,6 @@ class _SignScreenState extends State<SignScreen> {
   bool _obscurePwd = true;
 
   Future<void> _submit() async {
-    final email = _emailCtrl.text.trim();
-    final password = _pwdCtrl.text.trim();
-    final nickname = _nicknameCtrl.text.trim();
-
     if (_pwdCtrl.text != _pwdConfirmCtrl.text) {
       setState(() => _error = '비밀번호가 일치하지 않습니다.');
       return;
@@ -35,11 +31,11 @@ class _SignScreenState extends State<SignScreen> {
 
     try {
       final userCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+        email: _emailCtrl.text.trim(),
+        password: _pwdCtrl.text.trim(),
       );
 
-      await userCred.user!.updateDisplayName(nickname);
+      await userCred.user!.updateDisplayName(_nicknameCtrl.text.trim());
       await userCred.user!.sendEmailVerification();
 
       Navigator.pushReplacementNamed(context, '/email_verified');
@@ -52,81 +48,95 @@ class _SignScreenState extends State<SignScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final greenColor = const Color(0xFF0B872C);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final buttonHeight = screenHeight * 0.07;
+
+    InputDecoration buildInput(String hint, {Widget? suffixIcon}) {
+      return InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white, // ✅ 흰색으로 고정
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: greenColor),
+        ),
+        suffixIcon: suffixIcon,
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('회원가입'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _lastNameCtrl,
-                      decoration: const InputDecoration(labelText: '성'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _firstNameCtrl,
-                      decoration: const InputDecoration(labelText: '이름'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _nicknameCtrl,
-                decoration: const InputDecoration(labelText: '닉네임'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(
-                  labelText: '이메일',
-                  hintText: '이메일을 입력하세요.',
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _pwdCtrl,
-                decoration: InputDecoration(
-                  labelText: '비밀번호',
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePwd ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
-                  ),
-                ),
-                obscureText: _obscurePwd,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _pwdConfirmCtrl,
-                decoration: const InputDecoration(labelText: '비밀번호 확인'),
-                obscureText: _obscurePwd,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: BouncyButton(
-                  onPressed: _submit,
-                  text: '회원가입',
-                  isLoading: _isLoading,
+      backgroundColor: Colors.white,
+      appBar: AppBar(title: const Text('회원가입'), centerTitle: true),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('성', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(child: TextField(controller: _lastNameCtrl, decoration: buildInput('성'))),
+                const SizedBox(width: 12),
+                Expanded(child: TextField(controller: _firstNameCtrl, decoration: buildInput('이름'))),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text('닉네임', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 6),
+            TextField(controller: _nicknameCtrl, decoration: buildInput('닉네임')),
+            const SizedBox(height: 16),
+            const Text('이메일', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: buildInput('이메일을 입력하세요.'),
+            ),
+            const SizedBox(height: 16),
+            const Text('비밀번호', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _pwdCtrl,
+              obscureText: _obscurePwd,
+              decoration: buildInput(
+                '********',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePwd ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
                 ),
               ),
-              if (_error.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(_error, style: const TextStyle(color: Colors.red)),
-                ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            const Text('비밀번호 확인', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 6),
+            TextField(controller: _pwdConfirmCtrl, obscureText: _obscurePwd, decoration: buildInput('********')),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: buttonHeight,
+              child: BouncyButton(
+                text: '이메일 인증하기',
+                isLoading: _isLoading,
+                onPressed: _submit,
+              ),
+            ),
+            if (_error.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(_error, style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+              ),
+          ],
         ),
       ),
     );
