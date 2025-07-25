@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../widgets/bouncy_async_button.dart'; // ✅ 수정된 파일명 주의
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -10,34 +11,24 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final _emailCtrl = TextEditingController();
-  final _pwdCtrl   = TextEditingController();
-  bool _isLogin = true;
+  final _pwdCtrl = TextEditingController();
   String _error = '';
 
   Future<void> _submit() async {
-    try {
-      if (_isLogin) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailCtrl.text.trim(),
-          password: _pwdCtrl.text.trim(),
-        );
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailCtrl.text.trim(),
-          password: _pwdCtrl.text.trim(),
-        );
-        Navigator.pushReplacementNamed(context, '/profile');
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _error = e.message ?? '알 수 없는 오류');
-    }
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: _emailCtrl.text.trim(),
+      password: _pwdCtrl.text.trim(),
+    );
+  }
+
+  void _handleFinish() {
+    Navigator.pushReplacementNamed(context, '/home');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isLogin ? '로그인' : '회원가입')),
+      appBar: AppBar(title: const Text('로그인')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -53,18 +44,38 @@ class _AuthScreenState extends State<AuthScreen> {
               obscureText: true,
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _submit,
-              child: Text(_isLogin ? '로그인' : '회원가입'),
+
+            SizedBox(
+              width: double.infinity,
+              child: BouncyAsyncButton(
+                text: '로그인',
+                onPressed: () async {
+                  try {
+                    await _submit();
+                    return;
+                  } on FirebaseAuthException catch (e) {
+                    setState(() => _error = e.message ?? '알 수 없는 오류');
+                    rethrow;
+                  }
+                },
+                onFinished: _handleFinish,
+              ),
             ),
+
+            const SizedBox(height: 10),
+
             TextButton(
-              onPressed: () => setState(() => _isLogin = !_isLogin),
-              child: Text(_isLogin ? '회원가입으로 전환' : '로그인으로 전환'),
+              onPressed: () => Navigator.pushNamed(context, '/signup'),
+              child: const Text('회원가입'),
             ),
+
             if (_error.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: Text(_error, style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  _error,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
           ],
         ),

@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static ThemeData get light => ThemeData(
-        primarySwatch: Colors.indigo,
+        primarySwatch: Colors.green, // primarySwatch는 제한된 색상만 가능
         scaffoldBackgroundColor: Colors.grey.shade100,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.indigo,
+          backgroundColor: Color(0xFF0B872C), // ✅ 앱바 색상
           foregroundColor: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigoAccent,
+            backgroundColor: const Color(0xFF0B872C), // ✅ 버튼 배경
             foregroundColor: Colors.white,
           ),
         ),

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:haru_diary/widgets/custom_bottom_navbar.dart'; // ✅ 네비게이션 바 import
 
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
 
-  // 날씨 코드 → 이모지 변환 함수
   String weatherToEmoji(String? weather) {
     switch (weather) {
       case 'sunny':
@@ -24,7 +24,6 @@ class MyPageScreen extends StatelessWidget {
     }
   }
 
-  // Firestore Timestamp → 날짜 포맷 문자열
   String formatTimestamp(dynamic timestamp) {
     if (timestamp is Timestamp) {
       final date = timestamp.toDate();
@@ -33,37 +32,36 @@ class MyPageScreen extends StatelessWidget {
     return '';
   }
 
-  // 로그아웃 다이얼로그 함수
   Future<void> showLogoutDialog(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('로그아웃'),
-          content: Text('정말 로그아웃하시겠습니까?'),
+          title: const Text('로그아웃'),
+          content: const Text('정말 로그아웃하시겠습니까?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text('네'),
+              child: const Text('네'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text('아니오'),
+              child: const Text('아니오'),
             ),
           ],
         );
       },
     );
+
     if (shouldLogout == true) {
       await FirebaseAuth.instance.signOut();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context, rootNavigator: true)
-            .pushNamedAndRemoveUntil('/', (route) => false); // '/' = SplashScreen
+            .pushNamedAndRemoveUntil('/', (route) => false);
       });
     }
   }
 
-  // 일기 상세 모달
   void showDiaryModal(BuildContext context, String title, String content) {
     showDialog(
       context: context,
@@ -92,6 +90,13 @@ class MyPageScreen extends StatelessWidget {
     );
   }
 
+  void _onTabTapped(BuildContext context, int index) {
+    const routes = ['/home', '/diary_list', '/statistics', '/mypage'];
+    if (ModalRoute.of(context)?.settings.name != routes[index]) {
+      Navigator.pushReplacementNamed(context, routes[index]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -105,7 +110,7 @@ class MyPageScreen extends StatelessWidget {
             // 프로필
             Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 35,
                   child: Icon(Icons.person, size: 40),
                 ),
@@ -115,11 +120,11 @@ class MyPageScreen extends StatelessWidget {
                   children: [
                     Text(
                       user?.displayName ?? '닉네임',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       user?.email ?? 'example@email.com',
-                      style: TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -127,16 +132,16 @@ class MyPageScreen extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // 최근 쓴 일기 미리보기
+            // 최근 쓴 일기
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('최근 쓴 일기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text('최근 쓴 일기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 TextButton(
                   onPressed: () {
                     Navigator.of(context, rootNavigator: true).pushNamed('/diary_list');
                   },
-                  child: Text('더 보기'),
+                  child: const Text('더 보기'),
                 ),
               ],
             ),
@@ -150,8 +155,8 @@ class MyPageScreen extends StatelessWidget {
                   .get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
                     child: Center(child: CircularProgressIndicator()),
                   );
                 }
@@ -159,7 +164,7 @@ class MyPageScreen extends StatelessWidget {
                   return Container(
                     alignment: Alignment.centerLeft,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
+                    child: const Text(
                       '최근 쓴 일기가 없습니다.',
                       style: TextStyle(color: Colors.grey),
                     ),
@@ -175,9 +180,9 @@ class MyPageScreen extends StatelessWidget {
                       child: ListTile(
                         leading: Text(
                           weatherToEmoji(data['weather']),
-                          style: TextStyle(fontSize: 28),
+                          style: const TextStyle(fontSize: 28),
                         ),
-                        title: Text(data['title'] ?? '', style: TextStyle(fontWeight: FontWeight.bold)),
+                        title: Text(data['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           '${formatTimestamp(data['createdAt'])} · ${data['text'] ?? ''}',
                           maxLines: 1,
@@ -197,22 +202,26 @@ class MyPageScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 24),
-            Divider(),
+            const Divider(),
             ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('앱 설정'),
-              trailing: Icon(Icons.chevron_right),
+              leading: const Icon(Icons.settings),
+              title: const Text('앱 설정'),
+              trailing: const Icon(Icons.chevron_right),
               onTap: () {},
             ),
             ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('로그아웃'),
+              leading: const Icon(Icons.logout),
+              title: const Text('로그아웃'),
               onTap: () {
                 showLogoutDialog(context);
               },
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: CustomBottomNavBar(
+        currentIndex: 3,
+        onTap: (index) => _onTabTapped(context, index),
       ),
     );
   }
