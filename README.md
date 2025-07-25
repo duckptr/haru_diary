@@ -54,31 +54,32 @@ flutter run
 
 ## 📁 디렉토리 구조
 
-📦 assets
-📦 lib
-┣ 📂 screens
-┃ ┣ 📜 auth_screen.dart
-┃ ┣ 📜 diary_list_screen.dart
-┃ ┣ 📜 email_verified_screen.dart
-┃ ┣ 📜 home_screen.dart
-┃ ┣ 📜 my_page_screen.dart
-┃ ┣ 📜 sign_screen.dart
-┃ ┣ 📜 splash_screen.dart
-┃ ┣ 📜 statistics_screen.dart
-┃ ┗ 📜 write_diary_screen.dart
-┣ 📂 widgets
-┃ ┣ 📜 bouncy_button.dart
-┃ ┣ 📜 calendar_weather_icon.dart
-┃ ┣ 📜 custom_bottom_navbar.dart
-┃ ┣ 📜 diary_modal.dart
-┃ ┣ 📜 hashtag_input_field.dart
-┃ ┣ 📜 loading_indicator.dart
-┃ ┣ 📜 statistics_card.dart
-┃ ┗ 📜 weather_selector.dart
-┣ 📂 models
-┣ 📂 services
-┣ 📂 utils
-┗ 📜 main.dart
+🗂️ assets  
+🗂️ lib  
+ ┣ 📁 screens  
+ ┃ ┣ 📄 auth_screen.dart  
+ ┃ ┣ 📄 diary_list_screen.dart  
+ ┃ ┣ 📄 email_verified_screen.dart  
+ ┃ ┣ 📄 home_screen.dart  
+ ┃ ┣ 📄 my_page_screen.dart  
+ ┃ ┣ 📄 sign_screen.dart  
+ ┃ ┣ 📄 splash_screen.dart  
+ ┃ ┣ 📄 statistics_screen.dart  
+ ┃ ┗ 📄 write_diary_screen.dart  
+ ┣ 📁 widgets  
+ ┃ ┣ 📄 bouncy_button.dart  
+ ┃ ┣ 📄 calendar_weather_icon.dart  
+ ┃ ┣ 📄 custom_bottom_navbar.dart  
+ ┃ ┣ 📄 diary_modal.dart  
+ ┃ ┣ 📄 hashtag_input_field.dart  
+ ┃ ┣ 📄 loading_indicator.dart  
+ ┃ ┣ 📄 statistics_card.dart  
+ ┃ ┗ 📄 weather_selector.dart  
+ ┣ 📁 models  
+ ┣ 📁 services  
+ ┣ 📁 utils  
+ ┗ 🚀 main.dart  
+
 
 ---
 
