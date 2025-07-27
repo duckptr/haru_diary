@@ -15,11 +15,11 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
   final _tagCtrl = TextEditingController();
 
   String? _weatherCode;
-  String? _docId;     // users/{uid}/diaries 문서 ID
-  String? _rootId;    // diaries 문서 ID (통계용)
+  String? _docId;
+  String? _rootId;
   bool _isEditing = false;
   bool _isLoading = false;
-  DateTime? _selectedDate; // 선택한 날짜
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -37,7 +37,7 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
           _weatherCode = args['weather'] as String?;
           final tags = args['hashtags'] as List<dynamic>? ?? [];
           _tagCtrl.text = tags.map((e) => '#$e').join(' ');
-          _selectedDate = (args['createdAt'] as Timestamp?)?.toDate(); // 기존 작성일 유지
+          _selectedDate = (args['createdAt'] as Timestamp?)?.toDate();
         });
       }
     });
@@ -51,54 +51,35 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
     super.dispose();
   }
 
-  Future<void> _pickWeather() async {
-    final icons = {
-      'sunny': '☀️',
-      'cloudy': '⛅',
-      'rain': '🌧️',
-      'storm': '🌩️',
-      'snow': '❄️',
-    };
-    final choice = await showModalBottomSheet<String>(
+  void _showWeatherDialog() {
+    showDialog(
       context: context,
-      builder: (_) => GridView.count(
-        crossAxisCount: 5,
-        padding: const EdgeInsets.all(16),
-        children: icons.entries.map((e) {
-          final selected = e.key == _weatherCode;
-          return IconButton(
-            onPressed: () => Navigator.pop(context, e.key),
-            icon: Text(
-              e.value,
-              style: TextStyle(
-                fontSize: 24,
-                color: selected ? Colors.blue : null,
-              ),
-            ),
-          );
-        }).toList(),
+      builder: (_) => AlertDialog(
+        title: const Text('당신의 하루는 어땠나요?'),
+        content: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          children: [
+            _weatherIconOption('sunny', '☀️'),
+            _weatherIconOption('cloudy', '⛅'),
+            _weatherIconOption('rain', '🌧️'),
+            _weatherIconOption('storm', '🌩️'),
+            _weatherIconOption('snow', '❄️'),
+          ],
+        ),
       ),
     );
-    if (choice != null) {
-      setState(() {
-        _weatherCode = choice;
-      });
-    }
   }
 
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? now,
-      firstDate: DateTime(now.year - 3),
-      lastDate: DateTime(now.year + 1),
+  Widget _weatherIconOption(String code, String icon) {
+    return GestureDetector(
+      onTap: () {
+        setState(() => _weatherCode = code);
+        Navigator.pop(context);
+        _onSubmit();
+      },
+      child: Text(icon, style: const TextStyle(fontSize: 30)),
     );
-    if (picked != null) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
   }
 
   List<String> _extractHashtags(String input) {
@@ -108,13 +89,13 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
 
   Future<void> _onSubmit() async {
     final title = _titleCtrl.text.trim();
-    final text = _textCtrl.text.trim();
+    final content = _textCtrl.text.trim();
     final tags = _extractHashtags(_tagCtrl.text);
 
-    if (text.isEmpty) return;
+    if (content.isEmpty) return;
     if (_weatherCode == null) {
-      await _pickWeather();
-      if (_weatherCode == null) return;
+      _showWeatherDialog();
+      return;
     }
 
     final createdDate = _selectedDate ?? DateTime.now();
@@ -128,7 +109,7 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
     final data = {
       'uid': uid,
       'title': title,
-      'text': text,
+      'content': content,
       'weather': _weatherCode!,
       'hashtags': tags,
       'createdAt': Timestamp.fromDate(createdDate),
@@ -142,7 +123,6 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
       } else {
         final rootRef = await rootDiaryCol.add(data);
         final rootId = rootRef.id;
-
         final userData = {
           ...data,
           'rootId': rootId,
@@ -180,17 +160,6 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
     }
   }
 
-  String _iconFor(String code) {
-    switch (code) {
-      case 'sunny': return '☀️';
-      case 'cloudy': return '⛅';
-      case 'rain': return '🌧️';
-      case 'storm': return '🌩️';
-      case 'snow': return '❄️';
-      default: return '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,22 +186,21 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
             ),
             const SizedBox(height: 12),
             Expanded(
-  child: TextField(
-    controller: _textCtrl,
-    keyboardType: TextInputType.multiline,
-    textInputAction: TextInputAction.newline, // ✅ 한글 입력 깨짐 방지
-    decoration: const InputDecoration(
-      hintText: '오늘 하루의 이야기를 기록해 보세요',
-      border: OutlineInputBorder(),
-      contentPadding: EdgeInsets.all(12),
-    ),
-    style: const TextStyle(fontSize: 16),
-    maxLines: null,
-    expands: true,
-    textAlignVertical: TextAlignVertical.top,
-  ),
-),
-
+              child: TextField(
+                controller: _textCtrl,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: const InputDecoration(
+                  hintText: '오늘 하루의 이야기를 기록해 보세요',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(12),
+                ),
+                style: const TextStyle(fontSize: 16),
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _tagCtrl,
@@ -240,32 +208,6 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
                 labelText: '해시태그 (예: #공부 #운동)',
                 border: OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(
-                      _selectedDate != null
-                          ? '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
-                          : '날짜 선택',
-                    ),
-                    onPressed: _pickDate,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.emoji_emotions_outlined),
-                    label: Text(
-                      _weatherCode != null ? _iconFor(_weatherCode!) : '날씨 선택',
-                    ),
-                    onPressed: _pickWeather,
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: 16),
             _isLoading
