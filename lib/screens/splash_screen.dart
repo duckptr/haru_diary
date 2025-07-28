@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import '../widgets/bouncy_button.dart'; // ✅ 공용 버튼 위젯 import
+import '../widgets/bouncy_button.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -8,7 +8,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 다크모드 대응
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, // ✅ 테마 반영
       body: SafeArea(
         child: Column(
           children: [
@@ -26,11 +26,11 @@ class SplashScreen extends StatelessWidget {
 
             // 📝 앱 소개 텍스트
             const Text(
-              '하루의 기분을 날씨로 남기세요',
+              '당신의 하루를 날씨로 기록하세요',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.teal,
+                color: Colors.white, // ✅ 다크 테마에 맞게 흰색으로 수정
               ),
               textAlign: TextAlign.center,
             ),

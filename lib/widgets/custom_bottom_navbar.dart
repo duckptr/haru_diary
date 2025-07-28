@@ -12,19 +12,37 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: const Color(0xFF0B872C),
-      selectedItemColor: Colors.white,
-      unselectedItemColor: Colors.white70,
-      currentIndex: currentIndex,
-      onTap: onTap,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-        BottomNavigationBarItem(icon: Icon(Icons.list), label: '일기 목록'),
-        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '통계'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: '마이페이지'),
-      ],
+    return SizedBox(
+      height: 55, // ✅ 높이 설정
+      child: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: const Color(0xFF121212), // 살짝 밝은 검정
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.grey,
+        showSelectedLabels: false, // ✅ 라벨 제거
+        showUnselectedLabels: false,
+        iconSize: 25, // 아이콘 크기 조정
+        currentIndex: currentIndex,
+        onTap: onTap,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: '',
+          ),
+        ],
+      ),
     );
   }
 }

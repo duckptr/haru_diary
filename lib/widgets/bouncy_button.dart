@@ -12,7 +12,7 @@ class BouncyButton extends StatefulWidget {
     super.key,
     required this.onPressed,
     required this.text,
-    this.color = const Color(0xFF0B872C),
+    this.color = const Color(0xFF0064FF),
     this.textStyle,
     this.isLoading = false, // ✅ 기본값 false
     this.enabled = true,

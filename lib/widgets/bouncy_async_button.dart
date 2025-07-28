@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 class BouncyAsyncButton extends StatefulWidget {
   final String text;
@@ -13,7 +12,7 @@ class BouncyAsyncButton extends StatefulWidget {
     required this.text,
     required this.onPressed,
     required this.onFinished,
-    this.color = const Color(0xFF0B872C),
+    this.color = const Color(0xFF0064FF),
     this.textStyle,
   });
 
@@ -47,6 +46,8 @@ class _BouncyAsyncButtonState extends State<BouncyAsyncButton>
       _loading = false;
       _success = true;
     });
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (mounted) widget.onFinished();
   }
 
   void _onTapCancel() => _pressController.forward();
@@ -84,22 +85,11 @@ class _BouncyAsyncButtonState extends State<BouncyAsyncButton>
                     color: Colors.white,
                   ),
                 )
-              : _success
-                  ? Lottie.asset(
-                      'assets/animations/done.json',
-                      width: 60,
-                      height: 60,
-                      repeat: false,
-                      onLoaded: (comp) async {
-                        await Future.delayed(comp.duration);
-                        if (mounted) widget.onFinished();
-                      },
-                    )
-                  : Text(
-                      widget.text,
-                      style: widget.textStyle ??
-                          const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
+              : Text(
+                  widget.text,
+                  style: widget.textStyle ??
+                      const TextStyle(color: Colors.white, fontSize: 16),
+                ),
         ),
       ),
     );
