@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:haru_diary/widgets/custom_bottom_navbar.dart'; // ✅ 커스텀 네비게이션 바 import
+import 'package:haru_diary/widgets/custom_bottom_navbar.dart';
 
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
@@ -123,123 +123,111 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('통계'),
-        actions: [
-          if (_availableMonths.length > 1)
-            DropdownButton<String>(
-              value: _selectedMonth,
-              items: _availableMonths
-                  .map((m) => DropdownMenuItem(
-                      value: m,
-                      child: Text(m == '전체' ? '전체 보기' : '$m월')))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedMonth = value);
-                }
-              },
-              underline: const SizedBox(),
-              icon: const Icon(Icons.filter_alt),
-            )
-        ],
-      ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _fetchStatistics(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      resizeToAvoidBottomInset: false,
+      extendBody: true,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 32, 16, 40),
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: _fetchStatistics(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('통계 데이터를 불러올 수 없습니다.'));
-          }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('통계 데이터를 불러올 수 없습니다.'));
+            }
 
-          final data = snapshot.data!;
-          final emotion = data['emotion'] as Map<String, int>;
-          final monthStats = data['monthStats'] as Map<String, int>;
-          final weekdayStats = data['weekdayStats'] as Map<int, int>;
-          final topTags = data['topTags'] as List<MapEntry<String, int>>;
+            final data = snapshot.data!;
+            final emotion = data['emotion'] as Map<String, int>;
+            final monthStats = data['monthStats'] as Map<String, int>;
+            final weekdayStats = data['weekdayStats'] as Map<int, int>;
+            final topTags = data['topTags'] as List<MapEntry<String, int>>;
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: ListTile(
-                  title: Text('📌 총 일기 수: ${data['total']}개'),
-                  subtitle: Text('🗓 이번 달 작성: ${data['month']}개'),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('😊 감정별 일기 수',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      ...emotion.entries.map((e) => Row(
-                            children: [
-                              Text('${e.key}'),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                  child: LinearProgressIndicator(
-                                      value: data['total'] > 0
-                                          ? e.value / data['total']
-                                          : 0,
-                                      minHeight: 8)),
-                              const SizedBox(width: 8),
-                              Text('${e.value}회'),
-                            ],
-                          )),
-                    ],
+            return ListView(
+              children: [
+                Card(
+                  child: ListTile(
+                    title: Text('📌 총 일기 수: ${data['total']}개'),
+                    subtitle: Text('📅 이번 달 작성: ${data['month']}개'),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              const Text('📊 월별 일기 수',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              SizedBox(height: 200, child: _MonthlyChart(data: monthStats)),
-
-              const SizedBox(height: 16),
-              const Text('📅 요일별 활동 분석',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              SizedBox(height: 200, child: _WeekdayChart(data: weekdayStats)),
-
-              const SizedBox(height: 16),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('🏷 가장 많이 사용한 해시태그',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: topTags
-                            .map((e) =>
-                                Chip(label: Text('#${e.key} (${e.value})')))
-                            .toList(),
-                      ),
-                    ],
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('😊 감정별 일기 수',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        ...emotion.entries.map((e) => Row(
+                              children: [
+                                Text(e.key),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                    child: LinearProgressIndicator(
+                                        value: data['total'] > 0
+                                            ? e.value / data['total']
+                                            : 0,
+                                        minHeight: 8)),
+                                const SizedBox(width: 8),
+                                Text('${e.value}회'),
+                              ],
+                            )),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+                const SizedBox(height: 16),
+                const Text('📊 월별 일기 수',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                SizedBox(height: 200, child: _MonthlyChart(data: monthStats)),
+                const SizedBox(height: 16),
+                const Text('📅 요일별 활동 분석',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                SizedBox(height: 200, child: _WeekdayChart(data: weekdayStats)),
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('🏷 가장 많이 사용한 해시태그',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: topTags
+                              .map((e) => Chip(
+                                  label:
+                                      Text('#${e.key} (${e.value})')))
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
-
-      // ✅ 하단 네비게이션 바 (currentIndex = 2)
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 2,
-        onTap: _onTabTapped,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          height: 72,
+          decoration: const BoxDecoration(
+            color: Color(0xFF121212),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: CustomBottomNavBar(
+            currentIndex: 2,
+            onTap: _onTabTapped,
+          ),
+        ),
       ),
     );
   }

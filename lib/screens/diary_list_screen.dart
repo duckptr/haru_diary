@@ -42,87 +42,104 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
         .snapshots();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('일기 목록')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: diaryStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      resizeToAvoidBottomInset: false,
+      extendBody: true,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 32, 16, 40),
+        child: ListView(
+          children: [
+            StreamBuilder<QuerySnapshot>(
+              stream: diaryStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('에러 발생: ${snapshot.error}'));
-          }
+                if (snapshot.hasError) {
+                  return Center(child: Text('에러 발생: ${snapshot.error}'));
+                }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('작성한 일기가 없습니다.'));
-          }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('작성한 일기가 없습니다.'));
+                }
 
-          final docs = snapshot.data!.docs;
+                final docs = snapshot.data!.docs;
 
-          return ListView.builder(
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final title = data['title'] ?? '';
-              final content = data['content'] ?? ''; // ✅ 필드명 통일
-              final date = (data['createdAt'] as Timestamp?)?.toDate();
-              final formatted =
-                  date != null ? DateFormat('yyyy.MM.dd').format(date) : '';
-              final hashtagsRaw = data['hashtags'];
-              final List<String> hashtags = hashtagsRaw != null
-                  ? List<String>.from(hashtagsRaw as List)
-                  : [];
+                return Column(
+                  children: docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final title = data['title'] ?? '';
+                    final content = data['content'] ?? '';
+                    final date = (data['createdAt'] as Timestamp?)?.toDate();
+                    final formatted =
+                        date != null ? DateFormat('yyyy.MM.dd').format(date) : '';
+                    final hashtagsRaw = data['hashtags'];
+                    final List<String> hashtags = hashtagsRaw != null
+                        ? List<String>.from(hashtagsRaw as List)
+                        : [];
 
-              return GestureDetector(
-                onTap: () => _showDetailModal(
-                  context: context,
-                  docId: docs[index].id,
-                  title: title,
-                  content: content,
-                  formatted: formatted,
-                  hashtags: hashtags,
-                ),
-                child: SizedBox(
-                  height: 150,
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(formatted, style: const TextStyle(color: Colors.grey)),
-                          const SizedBox(height: 4),
-                          Text(
-                            content,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                          const Spacer(),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: -8,
-                            children: hashtags
-                                .map((tag) => Chip(label: Text('#$tag')))
-                                .toList(),
-                          )
-                        ],
+                    return GestureDetector(
+                      onTap: () => _showDetailModal(
+                        context: context,
+                        docId: doc.id,
+                        title: title,
+                        content: content,
+                        formatted: formatted,
+                        hashtags: hashtags,
                       ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                      child: SizedBox(
+                        height: 150,
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Text(formatted, style: const TextStyle(color: Colors.grey)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  content,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                const Spacer(),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: -8,
+                                  children: hashtags
+                                      .map((tag) => Chip(label: Text('#$tag')))
+                                      .toList(),
+                                )
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 1,
-        onTap: _onTabTapped,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          height: 72,
+          decoration: const BoxDecoration(
+            color: Color(0xFF121212),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: CustomBottomNavBar(
+            currentIndex: 1,
+            onTap: _onTabTapped,
+          ),
+        ),
       ),
     );
   }
@@ -177,7 +194,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                             arguments: {
                               'docId': docId,
                               'title': title,
-                              'text': content, // WriteDiaryScreen 내부에서는 'text'로 받음
+                              'text': content,
                               'hashtags': hashtags,
                             },
                           );
@@ -189,7 +206,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                         child: const Text('수정'),
                       ),
                     ),
-                    const SizedBox(width: 16), // ✅ 버튼 간격 추가
+                    const SizedBox(width: 16),
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () async {
