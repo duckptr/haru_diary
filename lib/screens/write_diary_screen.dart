@@ -29,7 +29,7 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
 
       if (args != null) {
         setState(() {
-          _isEditing = true;
+          _isEditing = args['docId'] != null;
           _docId = args['docId'] as String?;
           _rootId = args['rootId'] as String?;
           _titleCtrl.text = args['title'] as String? ?? '';
@@ -37,8 +37,12 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
           _weatherCode = args['weather'] as String?;
           final tags = args['hashtags'] as List<dynamic>? ?? [];
           _tagCtrl.text = tags.map((e) => '#$e').join(' ');
-          _selectedDate = (args['createdAt'] as Timestamp?)?.toDate();
+          _selectedDate = args['createdAt'] != null
+              ? (args['createdAt'] as Timestamp).toDate()
+              : (args['date'] as DateTime?) ?? DateTime.now();
         });
+      } else {
+        _selectedDate = DateTime.now();
       }
     });
   }
