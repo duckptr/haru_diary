@@ -20,6 +20,14 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     uid = FirebaseAuth.instance.currentUser?.uid;
   }
 
+  // Pull-to-refresh handler
+  Future<void> _handleRefresh() async {
+    // Firestore stream updates automatically, but add slight delay for UX
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() {});
+  }
+
+  // Bottom nav tap handler
   void _onTabTapped(int index) {
     const routes = ['/home', '/diary_list', '/statistics', '/mypage'];
     if (ModalRoute.of(context)?.settings.name != routes[index]) {
@@ -29,121 +37,147 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure logged-in
     if (uid == null) {
-      return const Scaffold(
-        body: Center(child: Text('로그인이 필요합니다.')),
+      return Scaffold(
+        body: const Center(child: Text('로그인이 필요합니다.')),
+        bottomNavigationBar: _buildNavBar(),
       );
     }
 
+    // Firestore stream for diaries
     final diaryStream = FirebaseFirestore.instance
         .collection('diaries')
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots();
 
+    // Calculate bottom padding: nav height + safe area
+    final bottomInset = MediaQuery.of(context).padding.bottom + 72.0;
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      extendBody: true,
+      extendBody: false,
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 32, 16, 40),
-        child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
+        child: Column(
           children: [
-            StreamBuilder<QuerySnapshot>(
-              stream: diaryStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: diaryStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('에러 발생: \${snapshot.error}'));
+                  }
 
-                if (snapshot.hasError) {
-                  return Center(child: Text('에러 발생: ${snapshot.error}'));
-                }
+                  final docs = snapshot.data?.docs ?? [];
+                  if (docs.isEmpty) {
+                    return const Center(child: Text('작성한 일기가 없습니다.'));
+                  }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('작성한 일기가 없습니다.'));
-                }
+                  return RefreshIndicator(
+                    onRefresh: _handleRefresh,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.only(bottom: bottomInset),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final doc = docs[index];
+                        final data = doc.data() as Map<String, dynamic>;
+                        final title = data['title'] ?? '';
+                        final content = data['content'] ?? '';
+                        final date = (data['createdAt'] as Timestamp?)?.toDate();
+                        final formatted = date != null
+                            ? DateFormat('yyyy.MM.dd').format(date)
+                            : '';
+                        final hashtagsRaw = data['hashtags'];
+                        final hashtags = hashtagsRaw != null
+                            ? List<String>.from(hashtagsRaw as List)
+                            : <String>[];
 
-                final docs = snapshot.data!.docs;
-
-                return Column(
-                  children: docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final title = data['title'] ?? '';
-                    final content = data['content'] ?? '';
-                    final date = (data['createdAt'] as Timestamp?)?.toDate();
-                    final formatted =
-                        date != null ? DateFormat('yyyy.MM.dd').format(date) : '';
-                    final hashtagsRaw = data['hashtags'];
-                    final List<String> hashtags = hashtagsRaw != null
-                        ? List<String>.from(hashtagsRaw as List)
-                        : [];
-
-                    return GestureDetector(
-                      onTap: () => _showDetailModal(
-                        context: context,
-                        docId: doc.id,
-                        title: title,
-                        content: content,
-                        formatted: formatted,
-                        hashtags: hashtags,
-                      ),
-                      child: SizedBox(
-                        height: 150,
-                        child: Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Text(formatted, style: const TextStyle(color: Colors.grey)),
-                                const SizedBox(height: 4),
-                                Text(
-                                  content,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                                const Spacer(),
-                                Wrap(
-                                  spacing: 4,
-                                  runSpacing: -8,
-                                  children: hashtags
-                                      .map((tag) => Chip(label: Text('#$tag')))
-                                      .toList(),
-                                )
-                              ],
+                        return GestureDetector(
+                          onTap: () => _showDetailModal(
+                            context: context,
+                            docId: doc.id,
+                            title: title,
+                            content: content,
+                            formatted: formatted,
+                            hashtags: hashtags,
+                          ),
+                          child: Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    formatted,
+                                    style: const TextStyle(
+                                        color: Colors.grey, fontSize: 12),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    content,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (hashtags.isNotEmpty)
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: hashtags
+                                          .map((t) => Chip(label: Text('#\$t')))
+                                          .toList(),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          height: 72,
-          decoration: const BoxDecoration(
-            color: Color(0xFF121212),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: CustomBottomNavBar(
-            currentIndex: 1,
-            onTap: _onTabTapped,
-          ),
+      bottomNavigationBar: _buildNavBar(),
+    );
+  }
+
+  // Bottom navigation bar builder
+  Widget _buildNavBar() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 72,
+        decoration: const BoxDecoration(
+          color: Color(0xFF121212),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: CustomBottomNavBar(
+          currentIndex: 1,
+          onTap: _onTabTapped,
         ),
       ),
     );
   }
 
+  // Detail modal sheet
   void _showDetailModal({
     required BuildContext context,
     required String docId,
@@ -161,9 +195,9 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
         minChildSize: 0.4,
         maxChildSize: 0.95,
         builder: (_, ctl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(20),
           child: SingleChildScrollView(
@@ -171,16 +205,25 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 6),
-                Text(formatted, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                Text(
+                  formatted,
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                ),
                 const SizedBox(height: 16),
                 Text(content, style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 20),
-                Wrap(
-                  spacing: 6,
-                  children: hashtags.map((tag) => Chip(label: Text('#$tag'))).toList(),
-                ),
+                if (hashtags.isNotEmpty)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children:
+                        hashtags.map((t) => Chip(label: Text('#\$t'))).toList(),
+                  ),
                 const SizedBox(height: 30),
                 Row(
                   children: [
@@ -216,7 +259,8 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                               .doc(docId)
                               .delete();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('일기가 삭제되었습니다.')),
+                            const SnackBar(
+                                content: Text('일기가 삭제되었습니다.')),
                           );
                         },
                         style: OutlinedButton.styleFrom(
