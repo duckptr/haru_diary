@@ -12,7 +12,7 @@ class WriteDiaryScreen extends StatefulWidget {
 class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
   final _titleCtrl = TextEditingController();
   final _textCtrl = TextEditingController();
-  final _tagCtrl = TextEditingController();
+  final _tagInputCtrl = TextEditingController();
 
   String? _weatherCode;
   String? _docId;
@@ -20,6 +20,7 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
   bool _isEditing = false;
   bool _isLoading = false;
   DateTime? _selectedDate;
+  List<String> _tags = [];
 
   @override
   void initState() {
@@ -35,8 +36,8 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
           _titleCtrl.text = args['title'] as String? ?? '';
           _textCtrl.text = args['text'] as String? ?? '';
           _weatherCode = args['weather'] as String?;
-          final tags = args['hashtags'] as List<dynamic>? ?? [];
-          _tagCtrl.text = tags.map((e) => '#$e').join(' ');
+          final tagList = args['hashtags'] as List<dynamic>? ?? [];
+          _tags = tagList.map((e) => e.toString()).toList();
           _selectedDate = args['createdAt'] != null
               ? (args['createdAt'] as Timestamp).toDate()
               : (args['date'] as DateTime?) ?? DateTime.now();
@@ -51,8 +52,38 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _textCtrl.dispose();
-    _tagCtrl.dispose();
+    _tagInputCtrl.dispose();
     super.dispose();
+  }
+
+  void _handleTagInput(String value) {
+    if (value.endsWith(' ')) {
+      final tag = value.trim();
+
+      final validTag = RegExp(r'^[a-zA-Z0-9가-힣]+$');
+      if (tag.isEmpty || !validTag.hasMatch(tag)) {
+        _tagInputCtrl.clear();
+        return;
+      }
+
+      if (_tags.contains(tag)) {
+        _tagInputCtrl.clear();
+        return;
+      }
+
+      if (_tags.length >= 5) {
+        _tagInputCtrl.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('해시태그는 최대 5개까지 입력할 수 있어요.')),
+        );
+        return;
+      }
+
+      setState(() {
+        _tags.add(tag);
+        _tagInputCtrl.clear();
+      });
+    }
   }
 
   void _showWeatherDialog() {
@@ -86,15 +117,9 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
     );
   }
 
-  List<String> _extractHashtags(String input) {
-    final regex = RegExp(r'#(\w+)');
-    return regex.allMatches(input).map((m) => m.group(1)!).toList();
-  }
-
   Future<void> _onSubmit() async {
     final title = _titleCtrl.text.trim();
     final content = _textCtrl.text.trim();
-    final tags = _extractHashtags(_tagCtrl.text);
 
     if (content.isEmpty) return;
     if (_weatherCode == null) {
@@ -115,7 +140,7 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
       'title': title,
       'content': content,
       'weather': _weatherCode!,
-      'hashtags': tags,
+      'hashtags': _tags,
       'createdAt': Timestamp.fromDate(createdDate),
       'date': createdDate,
     };
@@ -206,10 +231,29 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
               ),
             ),
             const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: -8,
+                children: _tags
+                    .map((tag) => Chip(
+                          label: Text('#$tag'),
+                          onDeleted: () {
+                            setState(() {
+                              _tags.remove(tag);
+                            });
+                          },
+                        ))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
             TextField(
-              controller: _tagCtrl,
+              controller: _tagInputCtrl,
+              onChanged: _handleTagInput,
               decoration: const InputDecoration(
-                labelText: '해시태그 (예: #공부 #운동)',
+                labelText: '해시태그 입력 (예: 공부 운동)',
                 border: OutlineInputBorder(),
               ),
             ),
