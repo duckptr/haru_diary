@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner/banner.png" alt="하루일기 배너" width="100%" />
+</p>
+
 # 하루일기 (Haru Diary) 📔
 Flutter로 만든 일기장 앱입니다.  
 하루의 기분을 텍스트, 날씨, 해시태그로 기록하고,  
