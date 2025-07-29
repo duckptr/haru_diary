@@ -91,6 +91,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                         final hashtags = hashtagsRaw != null
                             ? List<String>.from(hashtagsRaw as List)
                             : <String>[];
+                        final weather = data['weather'];
 
                         return GestureDetector(
                           onTap: () => _showDetailModal(
@@ -100,40 +101,65 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                             content: content,
                             formatted: formatted,
                             hashtags: hashtags,
+                            weather: weather,
                           ),
                           child: Card(
-                            color: const Color(0xFF1E1E1E), // 카드 배경색
+                            color: const Color(0xFF1E1E1E),
                             margin: const EdgeInsets.symmetric(vertical: 8),
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    title,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold, fontSize: 16),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      if (weather != null)
+                                        Image.asset(
+                                          'assets/images/$weather.png',
+                                          width: 28,
+                                          height: 28,
+                                        ),
+                                    ],
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     formatted,
                                     style: const TextStyle(
-                                        color: Colors.grey, fontSize: 12),
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    content,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2A2A2A),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      content,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   if (hashtags.isNotEmpty)
                                     Wrap(
                                       spacing: 6,
                                       runSpacing: 6,
-                                      children: hashtags
-                                          .map((t) => Chip(label: Text('#$t')))
-                                          .toList(),
+                                      children: hashtags.map((t) => Chip(label: Text('#$t'))).toList(),
                                     ),
                                 ],
                               ),
@@ -177,10 +203,13 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     required String content,
     required String formatted,
     required List<String> hashtags,
+    required String? weather,
   }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       backgroundColor: Colors.transparent,
       builder: (_) => DraggableScrollableSheet(
         initialChildSize: 0.8,
@@ -188,7 +217,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
         maxChildSize: 0.95,
         builder: (_, ctl) => Container(
           decoration: const BoxDecoration(
-            color: Color(0xFF1E1E1E), // ✅ 카드와 통일된 배경색
+            color: Color(0xFF1E1E1E),
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(20),
@@ -206,8 +235,27 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                   formatted,
                   style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
+                const SizedBox(height: 12),
+                if (weather != null)
+                  Row(
+                    children: [
+                      const Text(
+                        '날씨:',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(width: 8),
+                      Image.asset(
+                        'assets/images/$weather.png',
+                        width: 32,
+                        height: 32,
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 16),
-                Text(content, style: const TextStyle(fontSize: 16)),
+                Text(
+                  content,
+                  style: const TextStyle(fontSize: 16),
+                ),
                 const SizedBox(height: 20),
                 if (hashtags.isNotEmpty)
                   Wrap(
