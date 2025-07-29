@@ -6,7 +6,6 @@ class EmailVerifiedScreen extends StatelessWidget {
   const EmailVerifiedScreen({super.key});
 
   Future<void> _fakeDelay() async {
-    // simulate network delay
     await Future.delayed(const Duration(milliseconds: 800));
   }
 
@@ -19,7 +18,6 @@ class EmailVerifiedScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(),
-            // Lottie check animation
             Lottie.asset(
               'assets/animations/check.json',
               width: 160,
@@ -45,7 +43,6 @@ class EmailVerifiedScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const Spacer(),
-            // BouncyAsyncButton 사용
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: SizedBox(
@@ -56,9 +53,9 @@ class EmailVerifiedScreen extends StatelessWidget {
                   onFinished: () {
                     Navigator.pushReplacementNamed(context, '/auth');
                   },
-                  color: Colors.white,
+                  color: const Color(0xFF0064FF), // 🔵 여기 수정
                   textStyle: const TextStyle(
-                    color: Colors.black,
+                    color: Colors.white, // 텍스트는 흰색으로
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),

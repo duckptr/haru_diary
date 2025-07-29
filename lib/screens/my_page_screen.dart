@@ -7,20 +7,20 @@ import 'package:haru_diary/widgets/custom_bottom_navbar.dart';
 class MyPageScreen extends StatelessWidget {
   const MyPageScreen({super.key});
 
-  String weatherToEmoji(String? weather) {
+  String weatherToImage(String? weather) {
     switch (weather) {
       case 'sunny':
-        return '☀️';
+        return 'assets/images/sunny.png';
+      case 'partly_cloudy':
+        return 'assets/images/partly_cloudy.png';
       case 'cloudy':
-        return '☁️';
-      case 'rainy':
-        return '🌧️';
+        return 'assets/images/cloudy.png';
+      case 'rain':
+        return 'assets/images/rainy.png';
       case 'storm':
-        return '🌩️';
-      case 'snow':
-        return '❄️';
+        return 'assets/images/storm.png';
       default:
-        return '🌈';
+        return 'assets/images/snow.png';
     }
   }
 
@@ -177,9 +177,10 @@ class MyPageScreen extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
-                          leading: Text(
-                            weatherToEmoji(data['weather']),
-                            style: const TextStyle(fontSize: 28),
+                          leading: Image.asset(
+                            weatherToImage(data['weather']),
+                            width: 32,
+                            height: 32,
                           ),
                           title: Text(data['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:haru_diary/widgets/custom_bottom_navbar.dart';
+import 'package:haru_diary/widgets/bouncy_button.dart';
 
 class DiaryListScreen extends StatefulWidget {
   const DiaryListScreen({super.key});
@@ -20,14 +21,11 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     uid = FirebaseAuth.instance.currentUser?.uid;
   }
 
-  // Pull-to-refresh handler
   Future<void> _handleRefresh() async {
-    // Firestore stream updates automatically, but add slight delay for UX
     await Future.delayed(const Duration(milliseconds: 500));
     setState(() {});
   }
 
-  // Bottom nav tap handler
   void _onTabTapped(int index) {
     const routes = ['/home', '/diary_list', '/statistics', '/mypage'];
     if (ModalRoute.of(context)?.settings.name != routes[index]) {
@@ -37,7 +35,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Ensure logged-in
     if (uid == null) {
       return Scaffold(
         body: const Center(child: Text('로그인이 필요합니다.')),
@@ -45,19 +42,16 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
       );
     }
 
-    // Firestore stream for diaries
     final diaryStream = FirebaseFirestore.instance
         .collection('diaries')
         .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots();
 
-    // Calculate bottom padding: nav height + safe area
     final bottomInset = MediaQuery.of(context).padding.bottom + 72.0;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      extendBody: false,
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
         child: Column(
@@ -70,7 +64,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('에러 발생: \${snapshot.error}'));
+                    return Center(child: Text('에러 발생: ${snapshot.error}'));
                   }
 
                   final docs = snapshot.data?.docs ?? [];
@@ -108,11 +102,11 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                             hashtags: hashtags,
                           ),
                           child: Card(
+                            color: const Color(0xFF1E1E1E), // 카드 배경색
                             margin: const EdgeInsets.symmetric(vertical: 8),
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Column(
-                                mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
@@ -138,7 +132,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                       spacing: 6,
                                       runSpacing: 6,
                                       children: hashtags
-                                          .map((t) => Chip(label: Text('#\$t')))
+                                          .map((t) => Chip(label: Text('#$t')))
                                           .toList(),
                                     ),
                                 ],
@@ -159,7 +153,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     );
   }
 
-  // Bottom navigation bar builder
   Widget _buildNavBar() {
     return SafeArea(
       top: false,
@@ -177,7 +170,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     );
   }
 
-  // Detail modal sheet
   void _showDetailModal({
     required BuildContext context,
     required String docId,
@@ -195,9 +187,9 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
         minChildSize: 0.4,
         maxChildSize: 0.95,
         builder: (_, ctl) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E1E1E), // ✅ 카드와 통일된 배경색
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(20),
           child: SingleChildScrollView(
@@ -221,58 +213,90 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children:
-                        hashtags.map((t) => Chip(label: Text('#\$t'))).toList(),
+                    children: hashtags.map((t) => Chip(label: Text('#$t'))).toList(),
                   ),
                 const SizedBox(height: 30),
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(
-                            context,
-                            '/write',
-                            arguments: {
-                              'docId': docId,
-                              'title': title,
-                              'text': content,
-                              'hashtags': hashtags,
-                            },
+                      child: BouncyButton(
+                        text: '수정',
+                        color: const Color(0xFF0064FF),
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('수정 확인'),
+                              content: const Text('정말 수정하시겠습니까?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('네'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('아니오'),
+                                ),
+                              ],
+                            ),
                           );
+
+                          if (confirmed == true) {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(
+                              context,
+                              '/write',
+                              arguments: {
+                                'docId': docId,
+                                'title': title,
+                                'text': content,
+                                'hashtags': hashtags,
+                              },
+                            );
+                          }
                         },
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('수정'),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: OutlinedButton(
+                      child: BouncyButton(
+                        text: '삭제',
+                        color: Colors.red,
                         onPressed: () async {
-                          Navigator.pop(context);
-                          await FirebaseFirestore.instance
-                              .collection('diaries')
-                              .doc(docId)
-                              .delete();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('일기가 삭제되었습니다.')),
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('삭제 확인'),
+                              content: const Text('정말 삭제하시겠습니까?\n삭제된 일기는 복구할 수 없습니다.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('네'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('아니오'),
+                                ),
+                              ],
+                            ),
                           );
+
+                          if (confirmed == true) {
+                            Navigator.pop(context);
+                            await FirebaseFirestore.instance
+                                .collection('diaries')
+                                .doc(docId)
+                                .delete();
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('일기가 삭제되었습니다.')),
+                            );
+                          }
                         },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          minimumSize: const Size.fromHeight(48),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: const Text('삭제'),
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),

@@ -95,25 +95,29 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
           alignment: WrapAlignment.center,
           spacing: 12,
           children: [
-            _weatherIconOption('sunny', '☀️'),
-            _weatherIconOption('cloudy', '⛅'),
-            _weatherIconOption('rain', '🌧️'),
-            _weatherIconOption('storm', '🌩️'),
-            _weatherIconOption('snow', '❄️'),
+            _weatherIconOption('sunny', 'sunny.png'),
+            _weatherIconOption('partly_cloudy', 'partly_cloudy.png'),
+            _weatherIconOption('cloudy', 'cloudy.png'),
+            _weatherIconOption('rain', 'rainy.png'),
+            _weatherIconOption('storm', 'storm.png'),
           ],
         ),
       ),
     );
   }
 
-  Widget _weatherIconOption(String code, String icon) {
+  Widget _weatherIconOption(String code, String assetName) {
     return GestureDetector(
       onTap: () {
         setState(() => _weatherCode = code);
         Navigator.pop(context);
         _onSubmit();
       },
-      child: Text(icon, style: const TextStyle(fontSize: 30)),
+      child: Image.asset(
+        'assets/images/$assetName',
+        width: 60,
+        height: 60,
+      ),
     );
   }
 
