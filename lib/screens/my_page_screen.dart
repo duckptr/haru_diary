@@ -32,6 +32,84 @@ class MyPageScreen extends StatelessWidget {
     return '';
   }
 
+  void showDiaryModal({
+    required BuildContext context,
+    required String title,
+    required String content,
+    required String createdAt,
+    required String weatherCode,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          elevation: 8,
+          backgroundColor: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            constraints: const BoxConstraints(maxHeight: 480, maxWidth: 360),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      createdAt,
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                    Image.asset(
+                      weatherToImage(weatherCode),
+                      width: 28,
+                      height: 28,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Text(
+                        content,
+                        style: const TextStyle(fontSize: 16, height: 1.4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> showLogoutDialog(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -62,34 +140,6 @@ class MyPageScreen extends StatelessWidget {
     }
   }
 
-  void showDiaryModal(BuildContext context, String title, String content) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Container(
-          padding: const EdgeInsets.all(8),
-          color: Colors.blue.shade50,
-          child: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        content: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(content),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('닫기'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _onTabTapped(BuildContext context, int index) {
     const routes = ['/home', '/diary_list', '/statistics', '/mypage'];
     if (ModalRoute.of(context)?.settings.name != routes[index]) {
@@ -109,6 +159,7 @@ class MyPageScreen extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              // 프로필 + 수정 버튼
               Row(
                 children: [
                   const CircleAvatar(
@@ -116,34 +167,58 @@ class MyPageScreen extends StatelessWidget {
                     child: Icon(Icons.person, size: 40),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user?.displayName ?? '닉네임',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.displayName ?? '닉네임',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          user?.email ?? 'example@email.com',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushNamed('/fix_profile');
+                    },
+                    child: Text(
+                      '프로필 편집',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 14,
                       ),
-                      Text(
-                        user?.email ?? 'example@email.com',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 30),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('최근 쓴 일기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    '최근 쓴 일기',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context, rootNavigator: true).pushNamed('/diary_list');
+                      Navigator.of(context, rootNavigator: true)
+                          .pushNamed('/diary_list');
                     },
                     child: const Text('더 보기'),
                   ),
                 ],
               ),
+
               FutureBuilder<QuerySnapshot>(
                 future: FirebaseFirestore.instance
                     .collection('users')
@@ -169,12 +244,16 @@ class MyPageScreen extends StatelessWidget {
                       ),
                     );
                   }
+
                   final diaries = snapshot.data!.docs;
+
                   return Column(
                     children: diaries.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
                       return Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         child: ListTile(
                           leading: Image.asset(
@@ -182,7 +261,11 @@ class MyPageScreen extends StatelessWidget {
                             width: 32,
                             height: 32,
                           ),
-                          title: Text(data['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          title: Text(
+                            data['title'] ?? '',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           subtitle: Text(
                             '${formatTimestamp(data['createdAt'])} · ${data['text'] ?? ''}',
                             maxLines: 1,
@@ -190,9 +273,12 @@ class MyPageScreen extends StatelessWidget {
                           ),
                           onTap: () {
                             showDiaryModal(
-                              context,
-                              data['title'] ?? '',
-                              data['text'] ?? '',
+                              context: context,
+                              title: data['title'] ?? '',
+                              content: data['text'] ?? '',
+                              createdAt:
+                                  formatTimestamp(data['createdAt']),
+                              weatherCode: data['weather'] ?? '',
                             );
                           },
                         ),
@@ -201,8 +287,10 @@ class MyPageScreen extends StatelessWidget {
                   );
                 },
               ),
+
               const SizedBox(height: 24),
               const Divider(),
+
               ListTile(
                 leading: const Icon(Icons.settings),
                 title: const Text('앱 설정'),
@@ -220,6 +308,7 @@ class MyPageScreen extends StatelessWidget {
           ),
         ),
       ),
+
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(

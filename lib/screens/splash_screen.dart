@@ -16,7 +16,7 @@ class SplashScreen extends StatelessWidget {
 
             // 🎞️ Lottie 애니메이션
             Lottie.asset(
-              'assets/animations/camping.json',
+              'assets/animations/book.json',
               width: 250,
               height: 250,
               repeat: true,
