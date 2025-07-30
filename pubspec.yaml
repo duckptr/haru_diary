@@ -53,8 +53,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/animations/camping.json
+    - assets/animations/book.json
     - assets/animations/check.json
-    - assets/animations/done.json
     - .env
     - assets/images/
