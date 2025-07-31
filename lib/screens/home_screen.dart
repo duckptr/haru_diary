@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (desc.contains('흐림') || desc.contains('구름')) return 'cloudy';
     if (desc.contains('비')) return 'rainy';
     if (desc.contains('눈')) return 'snow';
-    return 'cloudy'; // fallback
+    return 'cloudy'; 
   }
 
   Color _colorFor(String code) {
@@ -96,13 +96,13 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'sunny':
         return Color(0xFFFF9800);
       case 'cloudy':
-        return Color(0xFF9E9E9E);
+        return Color(0xFF81D4FA);
       case 'rain':
-        return Color(0xFF03A9F4);
+        return Color(0xFF90A4AE);
       case 'storm':
-        return Color(0xFFFF5252);
+        return Color(0xFF1565C0);
       case 'snow':
-        return Color(0xFF448AFF);
+        return Color(0xFFFF5252);
       default:
         return Color(0xFF009688);
     }
