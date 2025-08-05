@@ -90,15 +90,24 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('당신의 하루는 어땠나요?'),
+        title: Padding( // 제목을 오른쪽으로 이동시키고 크기를 줄이기 위한 Padding 위젯 추가
+          padding: const EdgeInsets.only(right: 20.0),
+          child: Text(
+            '당신의 하루는 어땠나요?',
+            textAlign: TextAlign.right, // 텍스트를 오른쪽 정렬
+            style: const TextStyle(fontSize: 16.0), // 글자 크기 조정
+          ),
+        ),
         content: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 12,
+          alignment: WrapAlignment.center, // 가운데 정렬 유지
+          spacing: 8, // 이미지 간 가로 간격
+          runSpacing: 8, // 이미지 행 간 세로 간격
           children: [
+            // PNG 이미지 파일명을 사용하며, 요청하신 순서대로 나열합니다.
             _weatherIconOption('sunny', 'sunny.png'),
             _weatherIconOption('partly_cloudy', 'partly_cloudy.png'),
             _weatherIconOption('cloudy', 'cloudy.png'),
-            _weatherIconOption('rain', 'rainy.png'),
+            _weatherIconOption('rainy', 'rainy.png'), // 'rain' 대신 'rainy'로 일관성 유지
             _weatherIconOption('storm', 'storm.png'),
           ],
         ),
@@ -113,10 +122,13 @@ class _WriteDiaryScreenState extends State<WriteDiaryScreen> {
         Navigator.pop(context);
         _onSubmit();
       },
-      child: Image.asset(
-        'assets/images/$assetName',
-        width: 60,
-        height: 60,
+      child: SizedBox( // 이미지의 크기를 제한하여 한 줄에 5개가 들어갈 수 있도록 조정
+        width: 50, // 이미지 너비
+        height: 50, // 이미지 높이
+        child: Image.asset( // PNG 이미지 사용
+          'assets/images/$assetName', // PNG 이미지 경로
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }
