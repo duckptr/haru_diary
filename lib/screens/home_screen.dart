@@ -59,28 +59,87 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchWeather() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition();
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      final city = placemarks.first.administrativeArea ?? placemarks.first.locality ?? '알 수 없음';
-      final apiKey = dotenv.env['OPENWEATHER_API_KEY']!;
-      final url = Uri.parse(
-        'https://api.openweathermap.org/data/2.5/weather?lat=${position.latitude}&lon=${position.longitude}&appid=$apiKey&units=metric&lang=kr',
-      );
-      final response = await http.get(url);
-      final data = json.decode(response.body);
+  try {
+    // 위치 서비스 확인
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (!mounted) return;
       setState(() {
-        location = city;
-        weatherDesc = data['weather'][0]['description'];
-        temperature = data['main']['temp'];
+        location = '위치 서비스 꺼짐';
+        weatherDesc = '위치 서비스를 켜주세요';
       });
-    } catch (e) {
-      print('날씨 정보를 불러오는 중 오류 발생: $e');
+      return;
     }
+
+    // 권한 확인 및 요청
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        setState(() {
+          location = '위치 권한 없음';
+          weatherDesc = '권한 허용이 필요합니다';
+        });
+        return;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
+      setState(() {
+        location = '위치 권한 거부됨';
+        weatherDesc = '설정에서 권한을 허용해주세요';
+      });
+      return;
+    }
+
+    // 위치 가져오기
+    Position position = await Geolocator.getCurrentPosition();
+
+    // 도시명 가져오기
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+    final city = placemarks.first.administrativeArea ??
+        placemarks.first.locality ??
+        '알 수 없음';
+
+    // API 키 확인
+    final apiKey = dotenv.env['OPENWEATHER_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception("API 키가 없습니다. .env를 확인하세요.");
+    }
+
+    // API 요청
+    final url = Uri.parse(
+      'https://api.openweathermap.org/data/2.5/weather'
+      '?lat=${position.latitude}&lon=${position.longitude}'
+      '&appid=$apiKey&units=metric&lang=kr',
+    );
+    final response = await http.get(url);
+    if (response.statusCode != 200) {
+      throw Exception("날씨 API 요청 실패: ${response.statusCode}");
+    }
+
+    final data = json.decode(response.body);
+
+    if (!mounted) return;
+    setState(() {
+      location = city;
+      weatherDesc = data['weather'][0]['description'] ?? '-';
+      temperature = (data['main']['temp'] ?? 0).toDouble();
+    });
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      location = '날씨 정보 오류';
+      weatherDesc = e.toString();
+    });
+    print('날씨 정보를 불러오는 중 오류 발생: $e');
   }
+}
+
 
   String _getWeatherImageFileName(String desc) {
     if (desc.contains('맑음')) return 'sunny';
@@ -88,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (desc.contains('흐림') || desc.contains('구름')) return 'cloudy';
     if (desc.contains('비')) return 'rainy';
     if (desc.contains('눈')) return 'snow';
-    return 'cloudy'; 
+    return 'cloudy';
   }
 
   Color _colorFor(String code) {
@@ -228,160 +287,155 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       extendBody: true,
-      body: Stack(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 120),
+          children: [
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                height: 180,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0064FF),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('${temperature.toStringAsFixed(1)}°',
+                            style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text(weatherDesc, style: const TextStyle(color: Colors.white70, fontSize: 18)),
+                        const SizedBox(height: 4),
+                        Text(location, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                      ],
+                    ),
+                    Image.asset(
+                      'assets/images/${_getWeatherImageFileName(weatherDesc)}.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: TableCalendar<Map<String, String>>(
+                  locale: 'ko_KR',
+                  firstDay: DateTime.utc(2020, 1, 1),
+                  lastDay: DateTime.utc(2030, 12, 31),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
+                  onDaySelected: _onDaySelected,
+                  onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
+                  calendarFormat: CalendarFormat.month,
+                  availableCalendarFormats: const {CalendarFormat.month: '월'},
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    leftChevronVisible: false,
+                    rightChevronVisible: false,
+                  ),
+                  daysOfWeekHeight: 20,
+                  rowHeight: 56,
+                  eventLoader: (day) => _events[DateTime(day.year, day.month, day.day)] ?? [],
+                  calendarStyle: const CalendarStyle(
+                    markersMaxCount: 1,
+                    defaultTextStyle: TextStyle(color: Colors.white70),
+                    weekendTextStyle: TextStyle(color: Colors.white),
+                    outsideTextStyle: TextStyle(color: Colors.white38),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ListView(
-            padding: const EdgeInsets.only(bottom: 40),
-            children: [
-              const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  height: 180,
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0064FF),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('${temperature.toStringAsFixed(1)}°',
-                              style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(weatherDesc, style: const TextStyle(color: Colors.white70, fontSize: 18)),
-                          const SizedBox(height: 4),
-                          Text(location, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        ],
+          // 하단 버튼
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text("글쓰기"),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/write',
+                        arguments: {'date': _selectedDay ?? DateTime.now()},
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0064FF),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Image.asset(
-                        'assets/images/${_getWeatherImageFileName(weatherDesc)}.png',
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.contain,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF121212),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                  child: TableCalendar<Map<String, String>>(
-                    locale: 'ko_KR',
-                    firstDay: DateTime.utc(2020, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: _focusedDay,
-                    selectedDayPredicate: (day) => isSameDay(day, _selectedDay),
-                    onDaySelected: _onDaySelected,
-                    onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
-                    calendarFormat: CalendarFormat.month,
-                    availableCalendarFormats: const {CalendarFormat.month: '월'},
-                    headerStyle: const HeaderStyle(
-                      formatButtonVisible: false,
-                      titleCentered: true,
-                      leftChevronVisible: false,
-                      rightChevronVisible: false,
-                    ),
-                    daysOfWeekHeight: 20,
-                    rowHeight: 56,
-                    eventLoader: (day) => _events[DateTime(day.year, day.month, day.day)] ?? [],
-                    calendarStyle: const CalendarStyle(
-                      markersMaxCount: 1,
-                      defaultTextStyle: TextStyle(color: Colors.white70),
-                      weekendTextStyle: TextStyle(color: Colors.white),
-                      outsideTextStyle: TextStyle(color: Colors.white38),
-                    ),
-                    calendarBuilders: CalendarBuilders(
-                      defaultBuilder: (context, day, focusedDay) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('${day.day}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: isSameDay(day, _selectedDay) ? Colors.white : isSameDay(day, DateTime.now()) ? Colors.blueAccent : Colors.white70)),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
-                      selectedBuilder: (context, day, focusedDay) => Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blue),
-                            alignment: Alignment.center,
-                            child: Text('${day.day}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                      ),
-                      markerBuilder: (context, day, events) {
-                        if (events.isEmpty) return const SizedBox();
-                        final items = events.cast<Map<String, String>>();
-                        return Container(
-                          margin: const EdgeInsets.only(top: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: _colorFor(items.first['code']!),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            items.first['title']!,
-                            style: const TextStyle(fontSize: 11, color: Colors.white, overflow: TextOverflow.ellipsis),
-                          ),
-                        );
-                      },
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.list),
+                    label: const Text("글목록"),
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/diary_list');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF424242),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          Positioned(
-            bottom: MediaQuery.of(context).padding.bottom + 88,
-            right: 16,
-            child: FloatingActionButton(
-              backgroundColor: const Color(0xFF0064FF),
-              foregroundColor: Colors.white,
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/write',
-                  arguments: {'date': _selectedDay ?? DateTime.now()},
-                );
+          // 네브바
+          SafeArea(
+            top: false,
+            child: CustomBottomNavBar(
+              currentIndex: 0,
+              onTap: (idx) {
+                if (idx == 1) Navigator.pushReplacementNamed(context, '/ai_chat');
+                if (idx == 2) Navigator.pushReplacementNamed(context, '/statistics');
+                if (idx == 3) Navigator.pushReplacementNamed(context, '/mypage');
               },
-              child: const Icon(Icons.edit),
+              icons: const [
+                Icons.home,
+                Icons.chat, // AI 채팅
+                Icons.bar_chart,
+                Icons.person,
+              ],
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          height: 72,
-          decoration: const BoxDecoration(
-            color: Color(0xFF121212),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: CustomBottomNavBar(
-            currentIndex: 0,
-            onTap: (idx) {
-              if (idx == 1) Navigator.pushReplacementNamed(context, '/diary_list');
-              if (idx == 2) Navigator.pushReplacementNamed(context, '/statistics');
-              if (idx == 3) Navigator.pushReplacementNamed(context, '/mypage');
-            },
-          ),
-        ),
       ),
     );
   }
