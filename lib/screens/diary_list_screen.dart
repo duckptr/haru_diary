@@ -31,7 +31,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('일기 목록'),
-          automaticallyImplyLeading: true,
           backgroundColor: Colors.black,
         ),
         body: const Center(child: Text('로그인이 필요합니다.')),
@@ -49,7 +48,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('일기 목록'),
-        automaticallyImplyLeading: true,
         backgroundColor: Colors.black,
       ),
       body: Padding(
@@ -112,8 +110,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
                                         child: Text(
