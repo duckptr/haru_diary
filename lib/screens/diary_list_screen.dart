@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:haru_diary/widgets/custom_bottom_navbar.dart';
 import 'package:haru_diary/widgets/bouncy_button.dart';
 
 class DiaryListScreen extends StatefulWidget {
@@ -26,19 +25,16 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     setState(() {});
   }
 
-  void _onTabTapped(int index) {
-    const routes = ['/home', '/diary_list', '/statistics', '/mypage'];
-    if (ModalRoute.of(context)?.settings.name != routes[index]) {
-      Navigator.pushReplacementNamed(context, routes[index]);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (uid == null) {
       return Scaffold(
+        appBar: AppBar(
+          title: const Text('일기 목록'),
+          automaticallyImplyLeading: true,
+          backgroundColor: Colors.black,
+        ),
         body: const Center(child: Text('로그인이 필요합니다.')),
-        bottomNavigationBar: _buildNavBar(),
       );
     }
 
@@ -48,10 +44,14 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
         .orderBy('createdAt', descending: true)
         .snapshots();
 
-    final bottomInset = MediaQuery.of(context).padding.bottom + 72.0;
+    final bottomInset = MediaQuery.of(context).padding.bottom + 16.0;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        title: const Text('일기 목록'),
+        automaticallyImplyLeading: true,
+        backgroundColor: Colors.black,
+      ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 32, 16, 0),
         child: Column(
@@ -80,7 +80,7 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                       itemCount: docs.length,
                       itemBuilder: (context, index) {
                         final doc = docs[index];
-                        final data = doc.data() as Map<String, dynamic>;
+                        final data = doc.data()! as Map<String, dynamic>;
                         final title = data['title'] ?? '';
                         final content = data['content'] ?? '';
                         final date = (data['createdAt'] as Timestamp?)?.toDate();
@@ -112,7 +112,8 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Expanded(
                                         child: Text(
@@ -159,7 +160,9 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                     Wrap(
                                       spacing: 6,
                                       runSpacing: 6,
-                                      children: hashtags.map((t) => Chip(label: Text('#$t'))).toList(),
+                                      children: hashtags
+                                          .map((t) => Chip(label: Text('#$t')))
+                                          .toList(),
                                     ),
                                 ],
                               ),
@@ -173,24 +176,6 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
               ),
             ),
           ],
-        ),
-      ),
-      bottomNavigationBar: _buildNavBar(),
-    );
-  }
-
-  Widget _buildNavBar() {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 72,
-        decoration: const BoxDecoration(
-          color: Color(0xFF121212),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        child: CustomBottomNavBar(
-          currentIndex: 1,
-          onTap: _onTabTapped,
         ),
       ),
     );
@@ -228,7 +213,8 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -241,7 +227,8 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                     children: [
                       const Text(
                         '날씨:',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 8),
                       Image.asset(
@@ -261,7 +248,8 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
-                    children: hashtags.map((t) => Chip(label: Text('#$t'))).toList(),
+                    children:
+                        hashtags.map((t) => Chip(label: Text('#$t'))).toList(),
                   ),
                 const SizedBox(height: 30),
                 Row(
@@ -278,11 +266,13 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                               content: const Text('정말 수정하시겠습니까?'),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
+                                  onPressed: () =>
+                                      Navigator.pop(context, true),
                                   child: const Text('네'),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                   child: const Text('아니오'),
                                 ),
                               ],
@@ -315,14 +305,17 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('삭제 확인'),
-                              content: const Text('정말 삭제하시겠습니까?\n삭제된 일기는 복구할 수 없습니다.'),
+                              content: const Text(
+                                  '정말 삭제하시겠습니까?\n삭제된 일기는 복구할 수 없습니다.'),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
+                                  onPressed: () =>
+                                      Navigator.pop(context, true),
                                   child: const Text('네'),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                   child: const Text('아니오'),
                                 ),
                               ],
@@ -335,9 +328,9 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
                                 .collection('diaries')
                                 .doc(docId)
                                 .delete();
-
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('일기가 삭제되었습니다.')),
+                              const SnackBar(
+                                  content: Text('일기가 삭제되었습니다.')),
                             );
                           }
                         },

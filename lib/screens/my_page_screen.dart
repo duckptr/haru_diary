@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:haru_diary/widgets/custom_bottom_navbar.dart';
 
-class MyPageScreen extends StatelessWidget {
+class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
+
+  @override
+  _MyPageScreenState createState() => _MyPageScreenState();
+}
+
+class _MyPageScreenState extends State<MyPageScreen> {
+  int _currentIndex = 3; // 0: 홈, 1: AI 채팅, 2: 통계, 3: 마이페이지
 
   String weatherToImage(String? weather) {
     switch (weather) {
@@ -42,93 +48,89 @@ class MyPageScreen extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) {
-        return Dialog(
-          elevation: 8,
-          backgroundColor: Theme.of(context).cardColor,
-          shape: RoundedRectangleBorder(
+      builder: (context) => Dialog(
+        elevation: 8,
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          constraints: const BoxConstraints(maxHeight: 480, maxWidth: 360),
+          decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            constraints: const BoxConstraints(maxHeight: 480, maxWidth: 360),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    createdAt,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  Image.asset(
+                    weatherToImage(weatherCode),
+                    width: 28,
+                    height: 28,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      createdAt,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                    Image.asset(
-                      weatherToImage(weatherCode),
-                      width: 28,
-                      height: 28,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      content,
+                      style: const TextStyle(fontSize: 16, height: 1.4),
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Text(
-                        content,
-                        style: const TextStyle(fontSize: 16, height: 1.4),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Future<void> showLogoutDialog(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('로그아웃'),
-          content: const Text('정말 로그아웃하시겠습니까?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('네'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('아니오'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('정말 로그아웃하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('네'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('아니오'),
+          ),
+        ],
+      ),
     );
 
     if (shouldLogout == true) {
@@ -140,15 +142,28 @@ class MyPageScreen extends StatelessWidget {
     }
   }
 
-  void _onTabTapped(BuildContext context, int index) {
-    const routes = ['/home', '/diary_list', '/statistics', '/mypage'];
-    if (ModalRoute.of(context)?.settings.name != routes[index]) {
-      Navigator.pushReplacementNamed(context, routes[index]);
+  void _onItemTapped(int idx) {
+    if (idx == _currentIndex) return;
+    switch (idx) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/ai_chat');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/statistics');
+        break;
+      case 3:
+        // 현재 마이페이지
+        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
@@ -211,8 +226,7 @@ class MyPageScreen extends StatelessWidget {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context, rootNavigator: true)
-                          .pushNamed('/diary_list');
+                      Navigator.of(context).pushNamed('/diary_list');
                     },
                     child: const Text('더 보기'),
                   ),
@@ -246,10 +260,9 @@ class MyPageScreen extends StatelessWidget {
                   }
 
                   final diaries = snapshot.data!.docs;
-
                   return Column(
                     children: diaries.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
+                      final data = doc.data()! as Map<String, dynamic>;
                       return Card(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -263,8 +276,7 @@ class MyPageScreen extends StatelessWidget {
                           ),
                           title: Text(
                             data['title'] ?? '',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
                             '${formatTimestamp(data['createdAt'])} · ${data['text'] ?? ''}',
@@ -276,8 +288,7 @@ class MyPageScreen extends StatelessWidget {
                               context: context,
                               title: data['title'] ?? '',
                               content: data['text'] ?? '',
-                              createdAt:
-                                  formatTimestamp(data['createdAt']),
+                              createdAt: formatTimestamp(data['createdAt']),
                               weatherCode: data['weather'] ?? '',
                             );
                           },
@@ -309,18 +320,27 @@ class MyPageScreen extends StatelessWidget {
         ),
       ),
 
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          height: 72,
-          decoration: const BoxDecoration(
-            color: Color(0xFF121212),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: CustomBottomNavBar(
-            currentIndex: 3,
-            onTap: (index) => _onTabTapped(context, index),
-          ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.black,
+          currentIndex: _currentIndex,
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.white54,
+          selectedLabelStyle: const TextStyle(fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          showUnselectedLabels: true,
+          onTap: _onItemTapped,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart), label: '통계'),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline), label: '마이페이지'),
+          ],
         ),
       ),
     );
