@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../widgets/bouncy_async_button.dart';
 import '../widgets/bouncy_button.dart';
 import 'package:haru_diary/widgets/cloud_card.dart';
-import 'package:haru_diary/theme/app_theme.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -91,10 +89,14 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: TextField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '이메일',
                     hintText: 'example@google.com',
-                    border: OutlineInputBorder(borderSide: BorderSide.none),
+                    // 🔧 전역 filled(true) 무시해서 카드 배경만 보이게
+                    filled: false,
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
@@ -110,10 +112,16 @@ class _AuthScreenState extends State<AuthScreen> {
                   decoration: InputDecoration(
                     labelText: '비밀번호',
                     hintText: '********',
-                    border: const OutlineInputBorder(borderSide: BorderSide.none),
+                    filled: false,                // 🔧
+                    border: InputBorder.none,     // 🔧
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                     suffixIcon: IconButton(
                       tooltip: _obscurePwd ? '표시' : '숨기기',
-                      icon: Icon(_obscurePwd ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(
+                        _obscurePwd ? Icons.visibility_off : Icons.visibility,
+                        color: cs.outline,        // 🔧 라이트 모드에서 회색으로
+                      ),
                       onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
                     ),
                   ),
@@ -130,7 +138,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 8),
 
-              // 로그인 버튼
+              // 로그인 (주 버튼: 파랑 유지)
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
@@ -150,13 +158,15 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 8),
 
-              // 회원가입 버튼
+              // 회원가입 (보조 버튼: 밝은 배경 + 어두운 텍스트)
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
                 child: BouncyButton(
                   text: '회원가입',
-                  color: cs.surfaceVariant, // 테마 기반 회색
+                  color: cs.surfaceVariant, // 밝은 회색 배경
+                  // ⬇⬇ BouncyButton이 textStyle 지원하면 사용, 없으면 위젯에 textStyle만 추가해줘!
+                  textStyle: theme.textTheme.labelLarge?.copyWith(color: cs.onSurface),
                   onPressed: () => Navigator.pushNamed(context, '/signup'),
                 ),
               ),
@@ -166,20 +176,21 @@ class _AuthScreenState extends State<AuthScreen> {
                   padding: const EdgeInsets.only(top: 12),
                   child: Text(
                     _error,
-                    style: TextStyle(color: theme.colorScheme.error),
+                    style: TextStyle(color: cs.error),
                     textAlign: TextAlign.center,
                   ),
                 ),
 
               const SizedBox(height: 24),
 
-              // 구글 로그인 버튼 (TODO: 구글 로그인 연동 지점)
+              // 구글 로그인 (보조 버튼 동일 톤)
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
                 child: BouncyAsyncButton(
                   text: '구글 로그인',
                   color: cs.surfaceVariant,
+                  textStyle: theme.textTheme.labelLarge?.copyWith(color: cs.onSurface),
                   onPressed: () async {
                     // TODO: 구글 로그인 처리
                   },

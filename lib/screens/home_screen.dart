@@ -8,7 +8,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// ✅ 추가: 구름 카드 & 테마 상수
 import 'package:haru_diary/widgets/cloud_card.dart';
 import 'package:haru_diary/theme/app_theme.dart';
 
@@ -26,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String location = '위치를 가져오는 중...';
   String weatherDesc = '-';
   double temperature = 0;
-  int _currentIndex = 0; // 0: 홈, 1: AI 채팅, 2: 통계, 3: 마이페이지
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -50,9 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final ts = (data['date'] as Timestamp).toDate();
         final day = DateTime(ts.year, ts.month, ts.day);
         newEvents.putIfAbsent(day, () => []).add({
-          'code': data['weather'] as String,
-          'title': data['title'] as String? ?? '',
-          'content': data['content'] as String? ?? '',
+          'code': (data['weather'] as String?) ?? '',
+          'title': (data['title'] as String?) ?? '',
+          'content': (data['content'] as String?) ?? '',
           'id': doc.id,
         });
       }
@@ -146,9 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      // ✅ 테마 배경 사용
       extendBody: true,
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(bottom: 20 + bottomInset),
@@ -157,69 +154,66 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-
-                // ✅ 날씨 '히어로' 카드 (CloudCard + 내부 블루 컨테이너)
+                // 히어로 카드
                 CloudCard(
                   radius: 24,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${temperature.toStringAsFixed(1)}°',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                              ),
+                  padding: const EdgeInsets.all(20),
+                  color: AppTheme.primaryBlue,
+                  elevation: 0.7,
+                  clip: true,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${temperature.toStringAsFixed(1)}°',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              weatherDesc,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              location,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Image.asset(
-                          'assets/images/${_getWeatherImageFileName(weatherDesc)}.png',
-                          width: 64,
-                          height: 64,
-                          errorBuilder: (c, _, __) => const Icon(
-                            Icons.wb_sunny,
-                            color: Colors.yellow,
-                            size: 64,
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            weatherDesc,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            location,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Image.asset(
+                        'assets/images/${_getWeatherImageFileName(weatherDesc)}.png',
+                        width: 64,
+                        height: 64,
+                        errorBuilder: (c, _, __) => const Icon(
+                          Icons.wb_sunny,
+                          color: Colors.yellow,
+                          size: 64,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                // ✅ 캘린더 카드 (CloudCard + 테마 색)
+                // 캘린더 카드
                 CloudCard(
                   radius: 24,
                   padding: const EdgeInsets.all(12),
+                  elevation: 0.5,
                   child: TableCalendar<Map<String, String>>(
                     locale: 'ko_KR',
                     firstDay: DateTime.utc(2020, 1, 1),
@@ -262,59 +256,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 24),
 
-                // ✅ 액션 버튼 묶음 (CloudCard로 통일감 + 테마)
-                CloudCard(
-                  radius: 24,
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.edit, size: 22),
-                          label: const Text(
-                            "글쓰기",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                          ),
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/write',
-                              arguments: {'date': _selectedDay ?? DateTime.now()},
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                // 액션 버튼
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.edit, size: 22),
+                        label: const Text(
+                          "글쓰기",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                        ),
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/write',
+                            arguments: {'date': _selectedDay ?? DateTime.now()},
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.list, size: 22),
-                          label: const Text(
-                            "글목록",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                          ),
-                          onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/diary_list');
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: cs.onSurface,
-                            side: BorderSide(color: cs.outlineVariant),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.list, size: 22),
+                        label: const Text(
+                          "글목록",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                        ),
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/diary_list');
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: cs.onSurface,
+                          side: BorderSide(color: cs.outlineVariant),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -322,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // ✅ 바텀 네비게이션: 테마 기반 + 상단 1px 라인으로 분리
+      // 바텀 네비
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.brightness == Brightness.light ? Colors.white : cs.surface,
