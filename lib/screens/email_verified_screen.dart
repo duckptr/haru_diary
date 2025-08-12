@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:haru_diary/widgets/bouncy_async_button.dart';
+import 'package:haru_diary/theme/app_theme.dart';
 
 class EmailVerifiedScreen extends StatelessWidget {
   const EmailVerifiedScreen({super.key});
@@ -11,41 +12,51 @@ class EmailVerifiedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      // 배경은 테마에 맡김 (라이트/다크 자동 대응)
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spacer(),
-            Lottie.asset(
-              'assets/animations/check.json',
-              width: 160,
-              height: 160,
-              repeat: false,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '회원가입 완료!',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+
+              // 체크 애니메이션
+              Lottie.asset(
+                'assets/animations/check.json',
+                width: 160,
+                height: 160,
+                repeat: false,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '오늘부터, 당신의 하루는 이야기가 됩니다.',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 16,
+              const SizedBox(height: 20),
+
+              // 타이틀
+              Text(
+                '회원가입 완료!',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: cs.onSurface,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: SizedBox(
+              const SizedBox(height: 8),
+
+              // 서브 텍스트
+              Text(
+                '오늘부터, 당신의 하루는 이야기가 됩니다.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurface.withValues(alpha: 0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const Spacer(),
+
+              // 진행 버튼
+              SizedBox(
                 width: double.infinity,
                 child: BouncyAsyncButton(
                   text: '로그인 진행하기',
@@ -53,17 +64,18 @@ class EmailVerifiedScreen extends StatelessWidget {
                   onFinished: () {
                     Navigator.pushReplacementNamed(context, '/auth');
                   },
-                  color: const Color(0xFF0064FF), // 🔵 여기 수정
+                  color: AppTheme.primaryBlue,
                   textStyle: const TextStyle(
-                    color: Colors.white, // 텍스트는 흰색으로
+                    color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
+
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

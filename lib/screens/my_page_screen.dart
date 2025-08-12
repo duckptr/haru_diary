@@ -3,6 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+import 'package:haru_diary/widgets/cloud_card.dart';
+import 'package:haru_diary/theme/app_theme.dart';
+
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
 
@@ -21,12 +24,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
         return 'assets/images/partly_cloudy.png';
       case 'cloudy':
         return 'assets/images/cloudy.png';
-      case 'rain':
+      case 'rainy': // 표준 키
+      case 'rain':  // 구버전 호환
         return 'assets/images/rainy.png';
       case 'storm':
         return 'assets/images/storm.png';
-      default:
+      case 'snow':
         return 'assets/images/snow.png';
+      default:
+        return 'assets/images/cloudy.png';
     }
   }
 
@@ -45,69 +51,64 @@ class _MyPageScreenState extends State<MyPageScreen> {
     required String createdAt,
     required String weatherCode,
   }) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        elevation: 8,
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: CloudCard(
+          radius: 20,
           padding: const EdgeInsets.all(20),
-          constraints: const BoxConstraints(maxHeight: 480, maxWidth: 360),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    createdAt,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  Image.asset(
-                    weatherToImage(weatherCode),
-                    width: 28,
-                    height: 28,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 520, maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 상단 메타(날짜/날씨)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      createdAt,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.outline,
+                      ),
+                    ),
+                    Image.asset(
+                      weatherToImage(weatherCode),
+                      width: 28,
+                      height: 28,
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Text(
-                      content,
-                      style: const TextStyle(fontSize: 16, height: 1.4),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Text(
+                        content,
+                        style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -135,10 +136,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
     if (shouldLogout == true) {
       await FirebaseAuth.instance.signOut();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context, rootNavigator: true)
-            .pushNamedAndRemoveUntil('/', (route) => false);
-      });
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true)
+          .pushNamedAndRemoveUntil('/', (route) => false);
     }
   }
 
@@ -155,84 +155,90 @@ class _MyPageScreenState extends State<MyPageScreen> {
         Navigator.pushReplacementNamed(context, '/statistics');
         break;
       case 3:
-        // 현재 마이페이지
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      appBar: AppBar(title: const Text('마이페이지')),
       extendBody: true,
+
       body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 32, 16, 40),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // 프로필 + 수정 버튼
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 35,
-                    child: Icon(Icons.person, size: 40),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.displayName ?? '닉네임',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          user?.email ?? 'example@email.com',
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
+              // 프로필 카드
+              CloudCard(
+                radius: 24,
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 35,
+                      backgroundImage: (user?.photoURL != null && user!.photoURL!.isNotEmpty)
+                          ? NetworkImage(user.photoURL!)
+                          : null,
+                      child: (user?.photoURL == null || user!.photoURL!.isEmpty)
+                          ? Icon(Icons.person, size: 40, color: cs.outline)
+                          : null,
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/fix_profile');
-                    },
-                    child: Text(
-                      '프로필 편집',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontSize: 14,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.displayName ?? '닉네임',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            user?.email ?? 'example@email.com',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.outline,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pushNamed('/fix_profile'),
+                      child: const Text('프로필 편집'),
+                    ),
+                  ],
+                ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
+              // 최근 쓴 일기 헤더
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     '최근 쓴 일기',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/diary_list');
-                    },
+                    onPressed: () => Navigator.of(context).pushNamed('/diary_list'),
                     child: const Text('더 보기'),
                   ),
                 ],
               ),
 
+              // 최근 일기 2개
               FutureBuilder<QuerySnapshot>(
                 future: FirebaseFirestore.instance
                     .collection('users')
@@ -252,9 +258,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     return Container(
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: const Text(
+                      child: Text(
                         '최근 쓴 일기가 없습니다.',
-                        style: TextStyle(color: Colors.grey),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: cs.outline),
                       ),
                     );
                   }
@@ -263,33 +269,39 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   return Column(
                     children: diaries.map((doc) {
                       final data = doc.data()! as Map<String, dynamic>;
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                      final title = data['title'] ?? '';
+                      final content = (data['content'] ?? data['text'] ?? '') as String; // ✅ 키 불일치 보정
+                      final createdAt = data['createdAt'];
+                      final weather = data['weather'];
+
+                      return CloudCard(
+                        radius: 20,
                         margin: const EdgeInsets.symmetric(vertical: 8),
+                        padding: EdgeInsets.zero,
                         child: ListTile(
                           leading: Image.asset(
-                            weatherToImage(data['weather']),
+                            weatherToImage(weather),
                             width: 32,
                             height: 32,
                           ),
                           title: Text(
-                            data['title'] ?? '',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           subtitle: Text(
-                            '${formatTimestamp(data['createdAt'])} · ${data['text'] ?? ''}',
+                            '${formatTimestamp(createdAt)} · $content',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           onTap: () {
                             showDiaryModal(
                               context: context,
-                              title: data['title'] ?? '',
-                              content: data['text'] ?? '',
-                              createdAt: formatTimestamp(data['createdAt']),
-                              weatherCode: data['weather'] ?? '',
+                              title: title,
+                              content: content,
+                              createdAt: formatTimestamp(createdAt),
+                              weatherCode: weather ?? '',
                             );
                           },
                         ),
@@ -300,47 +312,66 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
 
               const SizedBox(height: 24),
-              const Divider(),
 
-              ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('앱 설정'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('로그아웃'),
-                onTap: () {
-                  showLogoutDialog(context);
-                },
+              // 설정/로그아웃 카드
+              CloudCard(
+                radius: 20,
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.settings),
+                      title: const Text('앱 설정'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        // TODO: 설정 화면 라우팅
+                      },
+                    ),
+                    Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.6)),
+                    ListTile(
+                      leading: const Icon(Icons.logout),
+                      title: const Text('로그아웃'),
+                      onTap: () => showLogoutDialog(context),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
       ),
 
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.black,
-          currentIndex: _currentIndex,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white54,
-          selectedLabelStyle: const TextStyle(fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          showUnselectedLabels: true,
-          onTap: _onItemTapped,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.bar_chart), label: '통계'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline), label: '마이페이지'),
-          ],
+      // 바텀 네비게이션: 테마 기반 + 상단 1px 라인
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.brightness == Brightness.light ? Colors.white : cs.surface,
+          border: Border(
+            top: BorderSide(
+              color: cs.outlineVariant.withValues(alpha: 0.6),
+              width: 1,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            currentIndex: _currentIndex,
+            selectedItemColor: AppTheme.primaryBlue,
+            unselectedItemColor: cs.onSurface.withValues(alpha: 0.45),
+            selectedLabelStyle: const TextStyle(fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            showUnselectedLabels: true,
+            onTap: _onItemTapped,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+              BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
+              BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '통계'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '마이페이지'),
+            ],
+          ),
         ),
       ),
     );

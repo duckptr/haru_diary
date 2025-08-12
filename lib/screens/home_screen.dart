@@ -8,6 +8,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+// ✅ 추가: 구름 카드 & 테마 상수
+import 'package:haru_diary/widgets/cloud_card.dart';
+import 'package:haru_diary/theme/app_theme.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -128,22 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'cloudy';
   }
 
-  Color _colorFor(String code) {
-    switch (code) {
-      case 'sunny':
-        return const Color(0xFFFF9800);
-      case 'cloudy':
-        return const Color(0xFF81D4FA);
-      case 'rain':
-        return const Color(0xFF90A4AE);
-      case 'storm':
-        return const Color(0xFF1565C0);
-      case 'snow':
-        return const Color(0xFFFF5252);
-    }
-    return const Color(0xFF009688);
-  }
-
   void _onDaySelected(DateTime selected, DateTime focused) {
     setState(() {
       _selectedDay = selected;
@@ -153,10 +141,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      // ✅ 테마 배경 사용
       extendBody: true,
 
       body: SafeArea(
@@ -168,67 +158,68 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
 
-                // 날씨 카드
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0064FF),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${temperature.toStringAsFixed(1)}°',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
+                // ✅ 날씨 '히어로' 카드 (CloudCard + 내부 블루 컨테이너)
+                CloudCard(
+                  radius: 24,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${temperature.toStringAsFixed(1)}°',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            weatherDesc,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 18,
+                            const SizedBox(height: 4),
+                            Text(
+                              weatherDesc,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 18,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            location,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
+                            const SizedBox(height: 4),
+                            Text(
+                              location,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      Image.asset(
-                        'assets/images/${_getWeatherImageFileName(weatherDesc)}.png',
-                        width: 64,
-                        height: 64,
-                        errorBuilder: (c, _, __) => const Icon(
-                          Icons.wb_sunny,
-                          color: Colors.yellow,
-                          size: 64,
+                          ],
                         ),
-                      ),
-                    ],
+                        Image.asset(
+                          'assets/images/${_getWeatherImageFileName(weatherDesc)}.png',
+                          width: 64,
+                          height: 64,
+                          errorBuilder: (c, _, __) => const Icon(
+                            Icons.wb_sunny,
+                            color: Colors.yellow,
+                            size: 64,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                // 캘린더 카드
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                // ✅ 캘린더 카드 (CloudCard + 테마 색)
+                CloudCard(
+                  radius: 24,
+                  padding: const EdgeInsets.all(12),
                   child: TableCalendar<Map<String, String>>(
                     locale: 'ko_KR',
                     firstDay: DateTime.utc(2020, 1, 1),
@@ -239,25 +230,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPageChanged: (d) => setState(() => _focusedDay = d),
                     calendarFormat: CalendarFormat.month,
                     availableCalendarFormats: const {CalendarFormat.month: '월'},
-                    headerStyle: const HeaderStyle(
+                    headerStyle: HeaderStyle(
                       formatButtonVisible: false,
                       titleCentered: true,
-                      leftChevronVisible: true,
-                      rightChevronVisible: true,
-                      titleTextStyle: TextStyle(color: Colors.white, fontSize: 16),
+                      leftChevronIcon: Icon(Icons.chevron_left, color: cs.onSurface),
+                      rightChevronIcon: Icon(Icons.chevron_right, color: cs.onSurface),
+                      titleTextStyle: theme.textTheme.titleMedium!.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     daysOfWeekHeight: 30,
                     rowHeight: 56,
-                    calendarStyle: const CalendarStyle(
-                      defaultTextStyle: TextStyle(color: Colors.white70),
-                      weekendTextStyle: TextStyle(color: Colors.white),
-                      outsideTextStyle: TextStyle(color: Colors.white38),
-                      todayDecoration: BoxDecoration(
-                        color: Colors.white24,
-                        shape: BoxShape.circle,
+                    calendarStyle: CalendarStyle(
+                      defaultTextStyle: theme.textTheme.bodyMedium!,
+                      weekendTextStyle: theme.textTheme.bodyMedium!,
+                      outsideTextStyle: theme.textTheme.bodyMedium!.copyWith(
+                        color: cs.outline,
                       ),
-                      selectedDecoration: BoxDecoration(
-                        color: Color(0xFF0064FF),
+                      todayDecoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.primaryBlue),
+                      ),
+                      selectedDecoration: const BoxDecoration(
+                        color: AppTheme.primaryBlue,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -266,55 +262,59 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 24),
 
-                // 글쓰기 / 글목록 버튼
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.edit, size: 22),
-                        label: const Text(
-                          "글쓰기",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                        ),
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/write',
-                            arguments: { 'date': _selectedDay ?? DateTime.now() },
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0064FF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                // ✅ 액션 버튼 묶음 (CloudCard로 통일감 + 테마)
+                CloudCard(
+                  radius: 24,
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.edit, size: 22),
+                          label: const Text(
+                            "글쓰기",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          ),
+                          onPressed: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/write',
+                              arguments: {'date': _selectedDay ?? DateTime.now()},
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.list, size: 22),
-                        label: const Text(
-                          "글목록",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                        ),
-                        onPressed: () {
-                          Navigator.pushReplacementNamed(context, '/diary_list');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF424242),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.list, size: 22),
+                          label: const Text(
+                            "글목록",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          ),
+                          onPressed: () {
+                            Navigator.pushReplacementNamed(context, '/diary_list');
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: cs.onSurface,
+                            side: BorderSide(color: cs.outlineVariant),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -322,41 +322,54 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      bottomNavigationBar: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.black,
-          currentIndex: _currentIndex,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white54,
-          selectedLabelStyle: const TextStyle(fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          showUnselectedLabels: true,
-          onTap: (idx) {
-            if (idx == _currentIndex) return;
-            setState(() => _currentIndex = idx);
-            switch (idx) {
-              case 0:
-                Navigator.pushReplacementNamed(context, '/home');
-                break;
-              case 1:
-                Navigator.pushReplacementNamed(context, '/ai_chat');
-                break;
-              case 2:
-                Navigator.pushReplacementNamed(context, '/statistics');
-                break;
-              case 3:
-                Navigator.pushReplacementNamed(context, '/mypage');
-                break;
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '통계'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '마이페이지'),
-          ],
+      // ✅ 바텀 네비게이션: 테마 기반 + 상단 1px 라인으로 분리
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.brightness == Brightness.light ? Colors.white : cs.surface,
+          border: Border(
+            top: BorderSide(
+              color: cs.outlineVariant.withValues(alpha: 0.6),
+              width: 1,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            currentIndex: _currentIndex,
+            selectedItemColor: AppTheme.primaryBlue,
+            unselectedItemColor: cs.onSurface.withValues(alpha: 0.45),
+            selectedLabelStyle: const TextStyle(fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            showUnselectedLabels: true,
+            onTap: (idx) {
+              if (idx == _currentIndex) return;
+              setState(() => _currentIndex = idx);
+              switch (idx) {
+                case 0:
+                  Navigator.pushReplacementNamed(context, '/home');
+                  break;
+                case 1:
+                  Navigator.pushReplacementNamed(context, '/ai_chat');
+                  break;
+                case 2:
+                  Navigator.pushReplacementNamed(context, '/statistics');
+                  break;
+                case 3:
+                  Navigator.pushReplacementNamed(context, '/mypage');
+                  break;
+              }
+            },
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+              BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
+              BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '통계'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '마이페이지'),
+            ],
+          ),
         ),
       ),
     );
