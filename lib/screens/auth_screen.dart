@@ -17,6 +17,8 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePwd = true;
   String _error = '';
 
+  static const double _fieldHeight = 52; // ✅ 입력 박스 고정 높이
+
   @override
   void dispose() {
     _emailCtrl.dispose();
@@ -65,6 +67,54 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  // ✅ 공통 입력 박스: 고정 높이 + 중앙 정렬 + suffix 영역 고정(폭/높이)
+  Widget _inputBox({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    bool obscure = false,
+    TextInputType? keyboardType,
+    TextInputAction? textInputAction,
+    void Function(String)? onSubmitted,
+    Widget? suffix,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return CloudCard(
+      radius: 20,
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+      child: SizedBox(
+        height: _fieldHeight,
+        child: TextField(
+          controller: controller,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          onSubmitted: onSubmitted,
+          maxLines: 1,
+          textAlignVertical: TextAlignVertical.center,
+          decoration: InputDecoration(
+            // 🔒 라벨 부유 방지: 포커스/입력 여부와 무관하게 높이 동일
+            floatingLabelBehavior: FloatingLabelBehavior.never,
+            labelText: label,
+            hintText: hint,
+            filled: false,
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
+            // suffix 유무와 관계없이 동일한 레이아웃 확보
+            suffixIcon: suffix ?? const SizedBox.shrink(),
+            // 🔧 suffix 영역을 고정 크기화(폭/높이 동일)
+            suffixIconConstraints: const BoxConstraints.tightFor(width: 40, height: 36),
+          ),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: cs.onSurface,
+                height: 1.2,
+              ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -83,48 +133,41 @@ class _AuthScreenState extends State<AuthScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 이메일
-              CloudCard(
-                radius: 20,
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                child: TextField(
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: '이메일',
-                    hintText: 'example@google.com',
-                    // 🔧 전역 filled(true) 무시해서 카드 배경만 보이게
-                    filled: false,
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+              _inputBox(
+                controller: _emailCtrl,
+                label: '이메일',
+                hint: 'example@google.com',
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => FocusScope.of(context).nextFocus(),
               ),
               const SizedBox(height: 12),
 
-              // 비밀번호
-              CloudCard(
-                radius: 20,
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                child: TextField(
-                  controller: _pwdCtrl,
-                  obscureText: _obscurePwd,
-                  decoration: InputDecoration(
-                    labelText: '비밀번호',
-                    hintText: '********',
-                    filled: false,                // 🔧
-                    border: InputBorder.none,     // 🔧
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    suffixIcon: IconButton(
-                      tooltip: _obscurePwd ? '표시' : '숨기기',
-                      icon: Icon(
-                        _obscurePwd ? Icons.visibility_off : Icons.visibility,
-                        color: cs.outline,        // 🔧 라이트 모드에서 회색으로
-                      ),
-                      onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
-                    ),
+              // 비밀번호 (동일한 suffix 영역 규격으로 높이 고정)
+              _inputBox(
+                controller: _pwdCtrl,
+                label: '비밀번호',
+                hint: '********',
+                obscure: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) async {
+                  try {
+                    await _submit();
+                  } on FirebaseAuthException catch (e) {
+                    if (!mounted) return;
+                    setState(() => _error = e.message ?? '알 수 없는 오류 발생');
+                  }
+                },
+                suffix: IconButton(
+                  tooltip: _obscurePwd ? '표시' : '숨기기',
+                  icon: Icon(
+                    _obscurePwd ? Icons.visibility_off : Icons.visibility,
+                    color: cs.outline,
                   ),
+                  onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 36),
+                  iconSize: 20,
                 ),
               ),
 
@@ -138,7 +181,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 8),
 
-              // 로그인 (주 버튼: 파랑 유지)
+              // 로그인 (주 버튼)
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
@@ -150,7 +193,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       return;
                     } on FirebaseAuthException catch (e) {
                       setState(() => _error = e.message ?? '알 수 없는 오류 발생');
-                      rethrow; // BouncyAsyncButton 진행 상태에 반영되도록
+                      rethrow; // 진행 상태 반영용
                     }
                   },
                   onFinished: _handleFinish,
@@ -158,14 +201,13 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 8),
 
-              // 회원가입 (보조 버튼: 밝은 배경 + 어두운 텍스트)
+              // 회원가입 (보조 버튼)
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
                 child: BouncyButton(
                   text: '회원가입',
-                  color: cs.surfaceVariant, // 밝은 회색 배경
-                  // ⬇⬇ BouncyButton이 textStyle 지원하면 사용, 없으면 위젯에 textStyle만 추가해줘!
+                  color: cs.surfaceVariant,
                   textStyle: theme.textTheme.labelLarge?.copyWith(color: cs.onSurface),
                   onPressed: () => Navigator.pushNamed(context, '/signup'),
                 ),
