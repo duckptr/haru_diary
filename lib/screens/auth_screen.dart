@@ -17,7 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePwd = true;
   String _error = '';
 
-  static const double _fieldHeight = 52; // ✅ 입력 박스 고정 높이
+  static const double _fieldHeight = 104; // ⬆️ 입력 박스 2배 높이
 
   @override
   void dispose() {
@@ -67,7 +67,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // ✅ 공통 입력 박스: 고정 높이 + 중앙 정렬 + suffix 영역 고정(폭/높이)
+  // ✅ 공통 입력 박스: 2배 높이 + 중앙 정렬 + 큰 글씨 + 넓은 suffix(동일 레이아웃)
   Widget _inputBox({
     required TextEditingController controller,
     required String label,
@@ -92,24 +92,25 @@ class _AuthScreenState extends State<AuthScreen> {
           onSubmitted: onSubmitted,
           maxLines: 1,
           textAlignVertical: TextAlignVertical.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: cs.onSurface,
+                height: 1.3,
+                fontSize: 18, // ⬆️ 본문 텍스트 크게
+              ),
           decoration: InputDecoration(
-            // 🔒 라벨 부유 방지: 포커스/입력 여부와 무관하게 높이 동일
-            floatingLabelBehavior: FloatingLabelBehavior.never,
+            floatingLabelBehavior: FloatingLabelBehavior.never, // 높이 흔들림 방지
             labelText: label,
+            labelStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16), // ⬆️
             hintText: hint,
+            hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, color: cs.outline), // ⬆️
             filled: false,
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
-            // suffix 유무와 관계없이 동일한 레이아웃 확보
+            // suffix 유무 관계없이 동일 레이아웃 유지
             suffixIcon: suffix ?? const SizedBox.shrink(),
-            // 🔧 suffix 영역을 고정 크기화(폭/높이 동일)
-            suffixIconConstraints: const BoxConstraints.tightFor(width: 40, height: 36),
+            suffixIconConstraints: const BoxConstraints.tightFor(width: 56, height: 56), // ⬆️ 영역 키움
           ),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurface,
-                height: 1.2,
-              ),
         ),
       ),
     );
@@ -141,9 +142,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) => FocusScope.of(context).nextFocus(),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 1), // ⬅️ 이메일 ↔ 비밀번호 간격만 타이트하게
 
-              // 비밀번호 (동일한 suffix 영역 규격으로 높이 고정)
+              // 비밀번호
               _inputBox(
                 controller: _pwdCtrl,
                 label: '비밀번호',
@@ -163,11 +164,11 @@ class _AuthScreenState extends State<AuthScreen> {
                   icon: Icon(
                     _obscurePwd ? Icons.visibility_off : Icons.visibility,
                     color: cs.outline,
+                    size: 28, // ⬆️ 아이콘 크게
                   ),
                   onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(width: 40, height: 36),
-                  iconSize: 20,
+                  constraints: const BoxConstraints.tightFor(width: 56, height: 56), // ⬆️
                 ),
               ),
 
@@ -225,7 +226,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
               const SizedBox(height: 24),
 
-              // 구글 로그인 (보조 버튼 동일 톤)
+              // 구글 로그인
               SizedBox(
                 width: double.infinity,
                 height: buttonHeight,
