@@ -110,11 +110,10 @@ flutter run
  ┃ ┣ 📄 bouncy_async_button.dart  
  ┃ ┗ 📄 cloud_card.dart  
  ┣ 📄 main_scaffold.dart  
- ┣ 📄 main.dart  
+ ┣ 🚀 main.dart  
  ┣ 📁 models  
- ┣ 📁 services  
- ┣ 📁 utils  
- ┗ 🚀 main.dart  
+ ┣ 📁 services    
+ ┗ 📁 utils  
 ```
 
 
