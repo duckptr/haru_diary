@@ -87,24 +87,27 @@ flutter run
 🗂️ assets  
 🗂️ lib  
  ┣ 📁 screens  
- ┃ ┣ 📄 auth_screen.dart  
+ ┃ ┣ 📄 auth_screen.dart
+ ┃ ┣ 📄 ai_chat_screen.dart 
+ ┃ ┣ 📄 fix_profile_screen.dart   
  ┃ ┣ 📄 diary_list_screen.dart  
  ┃ ┣ 📄 email_verified_screen.dart  
  ┃ ┣ 📄 home_screen.dart  
  ┃ ┣ 📄 my_page_screen.dart  
  ┃ ┣ 📄 sign_screen.dart  
- ┃ ┣ 📄 splash_screen.dart  
+ ┃ ┣ 📄 splash_screen.dart
+ ┃ ┣ 📄 setting_screen.dart  
  ┃ ┣ 📄 statistics_screen.dart  
- ┃ ┗ 📄 write_diary_screen.dart  
+ ┃ ┗ 📄 write_diary_screen.dart
+ ┣ 📁 theme
+ ┃ ┣ 📄 app_theme.dart
+ ┃ ┗ 📄 theme_service.dart       
  ┣ 📁 widgets  
  ┃ ┣ 📄 bouncy_button.dart  
- ┃ ┣ 📄 calendar_weather_icon.dart  
- ┃ ┣ 📄 custom_bottom_navbar.dart  
- ┃ ┣ 📄 diary_modal.dart  
- ┃ ┣ 📄 hashtag_input_field.dart  
- ┃ ┣ 📄 loading_indicator.dart  
- ┃ ┣ 📄 statistics_card.dart  
- ┃ ┗ 📄 weather_selector.dart  
+ ┃ ┣ 📄 bouncy_async_button.dart  
+ ┃ ┗ 📄 cloud_card.dart 
+ ┣ 📄 main_scaffold.dart 
+ ┣ 📄 main.dart  
  ┣ 📁 models  
  ┣ 📁 services  
  ┣ 📁 utils  
