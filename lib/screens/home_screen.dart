@@ -22,10 +22,17 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   Map<DateTime, List<Map<String, String>>> _events = {};
-  String location = '위치를 가져오는 중...';
+  String location = '위치를 가져오는 중...'; // ← 오타 수정
   String weatherDesc = '-';
   double temperature = 0;
   int _currentIndex = 0;
+
+  // 날짜를 '연-월-일'만 남기고 00:00:00으로 정규화
+  DateTime _normalize(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  List<Map<String, String>> _getEventsForDay(DateTime day) {
+    return _events[_normalize(day)] ?? const [];
+  }
 
   @override
   void initState() {
@@ -44,17 +51,26 @@ class _HomeScreenState extends State<HomeScreen> {
         .snapshots()
         .listen((snap) {
       final newEvents = <DateTime, List<Map<String, String>>>{};
+
       for (var doc in snap.docs) {
         final data = doc.data();
-        final ts = (data['date'] as Timestamp).toDate();
-        final day = DateTime(ts.year, ts.month, ts.day);
+
+        // 🔧 날짜 필드 보정: date가 없으면 createdAt 사용
+        final Timestamp? tsRaw =
+            (data['date'] as Timestamp?) ?? (data['createdAt'] as Timestamp?);
+        if (tsRaw == null) continue;
+        final ts = tsRaw.toDate();
+        final day = _normalize(ts);
+
         newEvents.putIfAbsent(day, () => []).add({
           'code': (data['weather'] as String?) ?? '',
           'title': (data['title'] as String?) ?? '',
-          'content': (data['content'] as String?) ?? '',
+          'content':
+              (data['content'] as String?) ?? (data['text'] as String?) ?? '',
           'id': doc.id,
         });
       }
+
       if (mounted) setState(() => _events = newEvents);
     });
   }
@@ -92,7 +108,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final pos = await Geolocator.getCurrentPosition();
       final pms = await placemarkFromCoordinates(pos.latitude, pos.longitude);
-      final city = pms.first.administrativeArea ?? pms.first.locality ?? '알 수 없음';
+      final city =
+          pms.first.administrativeArea ?? pms.first.locality ?? '알 수 없음';
       final apiKey = dotenv.env['OPENWEATHER_API_KEY'];
       if (apiKey == null || apiKey.isEmpty) {
         throw Exception("API 키가 없습니다. .env를 확인하세요.");
@@ -133,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onDaySelected(DateTime selected, DateTime focused) {
     setState(() {
-      _selectedDay = selected;
+      _selectedDay = _normalize(selected);
       _focusedDay = focused;
     });
   }
@@ -143,6 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final bottomInset = MediaQuery.of(context).padding.bottom;
+
+    final selectedEvents = _getEventsForDay(_selectedDay ?? _focusedDay);
 
     return Scaffold(
       extendBody: true,
@@ -219,16 +238,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     firstDay: DateTime.utc(2020, 1, 1),
                     lastDay: DateTime.utc(2030, 12, 31),
                     focusedDay: _focusedDay,
-                    selectedDayPredicate: (d) => isSameDay(d, _selectedDay),
+                    selectedDayPredicate: (d) =>
+                        isSameDay(_normalize(d), _selectedDay),
                     onDaySelected: _onDaySelected,
                     onPageChanged: (d) => setState(() => _focusedDay = d),
                     calendarFormat: CalendarFormat.month,
-                    availableCalendarFormats: const {CalendarFormat.month: '월'},
+                    availableCalendarFormats: const {
+                      CalendarFormat.month: '월'
+                    },
+                    // ✅ 이벤트 로더 추가: 이게 있어야 마커가 뜹니다
+                    eventLoader: _getEventsForDay,
                     headerStyle: HeaderStyle(
                       formatButtonVisible: false,
                       titleCentered: true,
-                      leftChevronIcon: Icon(Icons.chevron_left, color: cs.onSurface),
-                      rightChevronIcon: Icon(Icons.chevron_right, color: cs.onSurface),
+                      leftChevronIcon:
+                          Icon(Icons.chevron_left, color: cs.onSurface),
+                      rightChevronIcon:
+                          Icon(Icons.chevron_right, color: cs.onSurface),
                       titleTextStyle: theme.textTheme.titleMedium!.copyWith(
                         color: cs.onSurface,
                         fontWeight: FontWeight.w600,
@@ -250,8 +276,65 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: AppTheme.primaryBlue,
                         shape: BoxShape.circle,
                       ),
+                      // ✅ 마커(점) 데코 지정(색상/모양)
+                      markerDecoration: const BoxDecoration(
+                        color: AppTheme.primaryBlue,
+                        shape: BoxShape.circle,
+                      ),
+                      markersAlignment: Alignment.bottomCenter,
+                      markersMaxCount: 3,
                     ),
                   ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ✅ 선택 날짜 글 목록
+                CloudCard(
+                  radius: 20,
+                  padding: const EdgeInsets.all(12),
+                  elevation: 0.5,
+                  child: selectedEvents.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            '선택한 날짜에 작성한 글이 없습니다.',
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(color: cs.outline),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: selectedEvents.length,
+                          separatorBuilder: (_, __) => Divider(
+                            height: 1,
+                            color:
+                                cs.outlineVariant.withValues(alpha: 0.6),
+                          ),
+                          itemBuilder: (context, idx) {
+                            final e = selectedEvents[idx];
+                            return ListTile(
+                              leading: const Icon(Icons.book_outlined),
+                              title: Text(
+                                e['title']?.isNotEmpty == true
+                                    ? e['title']!
+                                    : '제목 없음',
+                                style: theme.textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                e['content'] ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                // 글 상세로 이동하고 싶다면 id 사용
+                                // Navigator.pushNamed(context, '/write', arguments: {...});
+                              },
+                            );
+                          },
+                        ),
                 ),
 
                 const SizedBox(height: 24),
@@ -264,13 +347,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.edit, size: 22),
                         label: const Text(
                           "글쓰기",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600),
                         ),
                         onPressed: () {
                           Navigator.pushNamed(
                             context,
                             '/write',
-                            arguments: {'date': _selectedDay ?? DateTime.now()},
+                            arguments: {
+                              'date': _selectedDay ?? DateTime.now()
+                            },
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -289,10 +375,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.list, size: 22),
                         label: const Text(
                           "글목록",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600),
                         ),
                         onPressed: () {
-                          Navigator.pushReplacementNamed(context, '/diary_list');
+                          // ✅ pushReplacementNamed → pushNamed 로 변경
+                          Navigator.pushNamed(context, '/diary_list');
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: cs.onSurface,
@@ -315,7 +403,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // 바텀 네비
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
-          color: theme.brightness == Brightness.light ? Colors.white : cs.surface,
+          color:
+              theme.brightness == Brightness.light ? Colors.white : cs.surface,
           border: Border(
             top: BorderSide(
               color: cs.outlineVariant.withValues(alpha: 0.6),
@@ -355,9 +444,12 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-              BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
-              BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: '통계'),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '마이페이지'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.chat_bubble_outline), label: 'AI 채팅'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.bar_chart), label: '통계'),
+              BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline), label: '마이페이지'),
             ],
           ),
         ),

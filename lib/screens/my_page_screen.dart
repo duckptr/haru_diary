@@ -323,9 +323,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                       leading: const Icon(Icons.settings),
                       title: const Text('앱 설정'),
                       trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        // TODO: 설정 화면 라우팅
-                      },
+                      onTap: () => Navigator.of(context).pushNamed('/settings'), // ★ 네임드 라우트로 이동
                     ),
                     Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.6)),
                     ListTile(

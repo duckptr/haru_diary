@@ -27,18 +27,34 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
     setState(() {});
   }
 
+  Future<bool> _handleBack() async {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      // 스택이 비어있으면 홈으로 대체 이동
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+    return false; // 여기서 pop을 우리가 처리했으니 시스템 pop 막기
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
     if (uid == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('일기 목록'),
-          leading: const BackButton(),
+      return WillPopScope(
+        onWillPop: _handleBack,
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('일기 목록'),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => _handleBack(),
+            ),
+          ),
+          body: const Center(child: Text('로그인이 필요합니다.')),
         ),
-        body: const Center(child: Text('로그인이 필요합니다.')),
       );
     }
 
@@ -50,135 +66,141 @@ class _DiaryListScreenState extends State<DiaryListScreen> {
 
     final bottomInset = MediaQuery.of(context).padding.bottom + 16.0;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('일기 목록'),
-        leading: const BackButton(),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-        child: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: diaryStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('에러 발생: ${snapshot.error}'));
-                  }
+    return WillPopScope(
+      onWillPop: _handleBack,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('일기 목록'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => _handleBack(),
+          ),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+          child: Column(
+            children: [
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: diaryStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('에러 발생: ${snapshot.error}'));
+                    }
 
-                  final docs = snapshot.data?.docs ?? [];
-                  if (docs.isEmpty) {
-                    return const Center(child: Text('작성한 일기가 없습니다.'));
-                  }
+                    final docs = snapshot.data?.docs ?? [];
+                    if (docs.isEmpty) {
+                      return const Center(child: Text('작성한 일기가 없습니다.'));
+                    }
 
-                  return RefreshIndicator(
-                    color: cs.primary,
-                    onRefresh: _handleRefresh,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.only(bottom: bottomInset),
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final doc = docs[index];
-                        final data = doc.data()! as Map<String, dynamic>;
-                        final title = data['title'] ?? '';
-                        final content = data['content'] ?? '';
-                        final date = (data['createdAt'] as Timestamp?)?.toDate();
-                        final formatted = date != null
-                            ? DateFormat('yyyy.MM.dd').format(date)
-                            : '';
-                        final hashtagsRaw = data['hashtags'];
-                        final hashtags = hashtagsRaw != null
-                            ? List<String>.from(hashtagsRaw as List)
-                            : <String>[];
-                        final weather = data['weather'];
+                    return RefreshIndicator(
+                      color: cs.primary,
+                      onRefresh: _handleRefresh,
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.only(bottom: bottomInset),
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final doc = docs[index];
+                          final data = doc.data()! as Map<String, dynamic>;
+                          final title = data['title'] ?? '';
+                          final content = data['content'] ?? '';
+                          final date = (data['createdAt'] as Timestamp?)?.toDate();
+                          final formatted = date != null
+                              ? DateFormat('yyyy.MM.dd').format(date)
+                              : '';
+                          final hashtagsRaw = data['hashtags'];
+                          final hashtags = hashtagsRaw != null
+                              ? List<String>.from(hashtagsRaw as List)
+                              : <String>[];
+                          final weather = data['weather'];
 
-                        return GestureDetector(
-                          onTap: () => _showDetailModal(
-                            context: context,
-                            docId: doc.id,
-                            title: title,
-                            content: content,
-                            formatted: formatted,
-                            hashtags: hashtags,
-                            weather: weather,
-                          ),
-                          child: CloudCard(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            padding: const EdgeInsets.all(12),
-                            radius: 20,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        title,
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: cs.onSurface,
+                          return GestureDetector(
+                            onTap: () => _showDetailModal(
+                              context: context,
+                              docId: doc.id,
+                              title: title,
+                              content: content,
+                              formatted: formatted,
+                              hashtags: hashtags,
+                              weather: weather,
+                            ),
+                            child: CloudCard(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.all(12),
+                              radius: 20,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: cs.onSurface,
+                                          ),
                                         ),
                                       ),
+                                      if (weather != null)
+                                        Image.asset(
+                                          'assets/images/$weather.png',
+                                          width: 28,
+                                          height: 28,
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    formatted,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: cs.outline,
                                     ),
-                                    if (weather != null)
-                                      Image.asset(
-                                        'assets/images/$weather.png',
-                                        width: 28,
-                                        height: 28,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // 내용 프리뷰 박스 (라이트/다크 자동 대응)
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surfaceVariant,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      content,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: cs.onSurface,
                                       ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  formatted,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: cs.outline,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                // 내용 프리뷰 박스 (라이트/다크 자동 대응)
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.surfaceVariant,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    content,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: cs.onSurface,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                if (hashtags.isNotEmpty)
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: hashtags
-                                        .map((t) => Chip(label: Text('#$t')))
-                                        .toList(),
-                                  ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  if (hashtags.isNotEmpty)
+                                    Wrap(
+                                      spacing: 6,
+                                      runSpacing: 6,
+                                      children: hashtags
+                                          .map((t) => Chip(label: Text('#$t')))
+                                          .toList(),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

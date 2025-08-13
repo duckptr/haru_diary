@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'theme/app_theme.dart';
-import 'theme/theme_service.dart'; // ← 추가: 테마 저장/로드
+import 'theme/theme_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/profile_setup_screen.dart';
@@ -16,14 +16,15 @@ import 'screens/statistics_screen.dart';
 import 'screens/sign_screen.dart';
 import 'screens/email_verified_screen.dart';
 import 'screens/fix_profile_screen.dart';
-import 'screens/ai_chat_screen.dart'; // ✅ AI 채팅 화면 추가
+import 'screens/ai_chat_screen.dart';
+import 'screens/setting_screen.dart'; // SettingsScreen(mode, onChanged)
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();           // ✅ .env 로딩
-  await Firebase.initializeApp(); // ✅ Firebase 초기화
+  await dotenv.load();
+  await Firebase.initializeApp();
 
-  // 저장된 테마 모드 로드 (없으면 라이트가 기본)
+  // 저장된 테마 모드 로드 (없으면 라이트)
   final initialMode = await ThemeService.load();
 
   runApp(MyApp(initialMode: initialMode));
@@ -33,7 +34,7 @@ class MyApp extends StatefulWidget {
   final ThemeMode initialMode;
   const MyApp({super.key, required this.initialMode});
 
-  // 어디서든 테마 바꾸기 쉽게 제공 (예: MyPageScreen에서 호출)
+  // 필요 시 외부에서 접근
   static _MyAppState of(BuildContext context) =>
       context.findAncestorStateOfType<_MyAppState>()!;
 
@@ -42,9 +43,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late ThemeMode _mode = widget.initialMode;
+  late ThemeMode _mode;
 
-  /// 마이페이지 등에서 호출: 다크/라이트 전환
+  @override
+  void initState() {
+    super.initState();
+    _mode = widget.initialMode;
+  }
+
+  /// 전역 테마 전환 + 영구 저장
   Future<void> setThemeMode(ThemeMode mode) async {
     setState(() => _mode = mode);
     await ThemeService.save(mode);
@@ -55,11 +62,9 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: '하루 일기',
       debugShowCheckedModeBanner: false,
-
-      // ✅ 기본 라이트 테마 + 다크 테마 제공
-      theme: AppTheme.light,   // 기본: 라이트
-      darkTheme: AppTheme.dark,
-      themeMode: _mode,        // 저장된 값 반영 (라이트/다크)
+      theme: AppTheme.light,     // 라이트
+      darkTheme: AppTheme.dark,  // 다크
+      themeMode: _mode,          // 현재 모드 적용
 
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
@@ -84,6 +89,12 @@ class _MyAppState extends State<MyApp> {
         '/email_verified': (context) => const EmailVerifiedScreen(),
         '/fix_profile':    (context) => const FixProfileScreen(),
         '/ai_chat':        (context) => const AiChatScreen(),
+
+        // ✅ SettingsScreen에 필수 인자 전달 (ValueChanged<ThemeMode>에 맞게 래핑)
+        '/settings':       (context) => SettingsScreen(
+          mode: _mode,
+          onChanged: (m) => setThemeMode(m),
+        ),
       },
     );
   }
