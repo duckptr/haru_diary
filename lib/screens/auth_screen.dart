@@ -17,7 +17,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePwd = true;
   String _error = '';
 
-  static const double _fieldHeight = 104; // ⬆️ 입력 박스 2배 높이
+  static const double _fieldHeight = 104; // 입력 박스 2배 높이
 
   @override
   void dispose() {
@@ -33,9 +33,10 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  void _handleFinish() {
+  void _goHome() {
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/home');
+    // ✅ 보너스: 스택 비우고 홈을 루트로
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
   }
 
   Future<void> _resetPassword() async {
@@ -67,7 +68,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // ✅ 공통 입력 박스: 2배 높이 + 중앙 정렬 + 큰 글씨 + 넓은 suffix(동일 레이아웃)
+  // 공통 입력 박스
   Widget _inputBox({
     required TextEditingController controller,
     required String label,
@@ -95,21 +96,20 @@ class _AuthScreenState extends State<AuthScreen> {
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: cs.onSurface,
                 height: 1.3,
-                fontSize: 18, // ⬆️ 본문 텍스트 크게
+                fontSize: 18,
               ),
           decoration: InputDecoration(
-            floatingLabelBehavior: FloatingLabelBehavior.never, // 높이 흔들림 방지
+            floatingLabelBehavior: FloatingLabelBehavior.never,
             labelText: label,
-            labelStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16), // ⬆️
+            labelStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16),
             hintText: hint,
-            hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, color: cs.outline), // ⬆️
+            hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 16, color: cs.outline),
             filled: false,
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
-            // suffix 유무 관계없이 동일 레이아웃 유지
             suffixIcon: suffix ?? const SizedBox.shrink(),
-            suffixIconConstraints: const BoxConstraints.tightFor(width: 56, height: 56), // ⬆️ 영역 키움
+            suffixIconConstraints: const BoxConstraints.tightFor(width: 56, height: 56),
           ),
         ),
       ),
@@ -142,18 +142,19 @@ class _AuthScreenState extends State<AuthScreen> {
                 textInputAction: TextInputAction.next,
                 onSubmitted: (_) => FocusScope.of(context).nextFocus(),
               ),
-              const SizedBox(height: 1), // ⬅️ 이메일 ↔ 비밀번호 간격만 타이트하게
+              const SizedBox(height: 1),
 
-              // 비밀번호
+              // 비밀번호 (토글 반영)
               _inputBox(
                 controller: _pwdCtrl,
                 label: '비밀번호',
                 hint: '********',
-                obscure: true,
+                obscure: _obscurePwd, // ✅ 토글 적용
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) async {
                   try {
                     await _submit();
+                    _goHome(); // ✅ 엔터로 로그인 성공 시 바로 홈
                   } on FirebaseAuthException catch (e) {
                     if (!mounted) return;
                     setState(() => _error = e.message ?? '알 수 없는 오류 발생');
@@ -164,11 +165,11 @@ class _AuthScreenState extends State<AuthScreen> {
                   icon: Icon(
                     _obscurePwd ? Icons.visibility_off : Icons.visibility,
                     color: cs.outline,
-                    size: 28, // ⬆️ 아이콘 크게
+                    size: 28,
                   ),
                   onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(width: 56, height: 56), // ⬆️
+                  constraints: const BoxConstraints.tightFor(width: 56, height: 56),
                 ),
               ),
 
@@ -191,13 +192,13 @@ class _AuthScreenState extends State<AuthScreen> {
                   onPressed: () async {
                     try {
                       await _submit();
-                      return;
+                      return; // 성공 시 onFinished 호출
                     } on FirebaseAuthException catch (e) {
                       setState(() => _error = e.message ?? '알 수 없는 오류 발생');
-                      rethrow; // 진행 상태 반영용
+                      rethrow; // 실패 상태를 버튼에 전달
                     }
                   },
-                  onFinished: _handleFinish,
+                  onFinished: _goHome, // ✅ 보너스 적용(스택 비우고 홈으로)
                 ),
               ),
               const SizedBox(height: 8),
@@ -224,24 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
 
-              const SizedBox(height: 24),
-
-              // 구글 로그인
-              SizedBox(
-                width: double.infinity,
-                height: buttonHeight,
-                child: BouncyAsyncButton(
-                  text: '구글 로그인',
-                  color: cs.surfaceVariant,
-                  textStyle: theme.textTheme.labelLarge?.copyWith(color: cs.onSurface),
-                  onPressed: () async {
-                    // TODO: 구글 로그인 처리
-                  },
-                  onFinished: () {
-                    // TODO: 구글 로그인 완료 후 이동
-                  },
-                ),
-              ),
+              // 🔻 구글 로그인 섹션 제거됨
             ],
           ),
         ),
