@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ⬅️ 닉네임 중복/예약 체크
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:haru_diary/utils/validators.dart';
 
 import '../widgets/bouncy_button.dart';
 import 'package:haru_diary/widgets/cloud_card.dart';
@@ -25,7 +26,6 @@ class _SignScreenState extends State<SignScreen> {
   bool _isLoading = false;
   bool _obscurePwd = true;
 
-  // Firestore 컬렉션 경로
   static const String _colUsers = 'users';
   static const String _colUsernames = 'usernames';
 
@@ -40,7 +40,6 @@ class _SignScreenState extends State<SignScreen> {
     super.dispose();
   }
 
-  // ─────────────── 유효성 검사 ───────────────
   bool isEmailValid(String email) =>
       RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(email);
 
@@ -61,7 +60,6 @@ class _SignScreenState extends State<SignScreen> {
     }
   }
 
-  // ─────────────── 중복 선체크 ───────────────
   Future<bool> _emailExists(String email) async {
     final methods =
         await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
@@ -76,7 +74,6 @@ class _SignScreenState extends State<SignScreen> {
     return snap.exists;
   }
 
-  // 닉네임 예약(원자적): 이미 있으면 예외 throw
   Future<void> _reserveNicknameOrThrow({
     required String nicknameLower,
     required String uid,
@@ -115,7 +112,6 @@ class _SignScreenState extends State<SignScreen> {
     }, SetOptions(merge: true));
   }
 
-  // ─────────────── 회원가입 제출 ───────────────
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
     final pwd = _pwdCtrl.text.trim();
@@ -125,9 +121,12 @@ class _SignScreenState extends State<SignScreen> {
     final first = _firstNameCtrl.text.trim();
     final last = _lastNameCtrl.text.trim();
 
-    // 1) 로컬 유효성 (닉네임 필수 포함)
     if (nicknameRaw.isEmpty) {
       setState(() => _error = '닉네임을 입력해주세요.');
+      return;
+    }
+    if (!Validators.isNicknameValid(nicknameRaw)) {
+      setState(() => _error = '닉네임 형식을 확인해주세요. (한글/영문/숫자/_ 2~20자)');
       return;
     }
     if (!isEmailValid(email)) {
@@ -149,7 +148,6 @@ class _SignScreenState extends State<SignScreen> {
     });
 
     try {
-      // 2) 서버 중복 선체크 (빠른 에러 피드백)
       if (await _emailExists(email)) {
         setState(() {
           _error = '이미 사용 중인 이메일입니다.';
@@ -165,7 +163,6 @@ class _SignScreenState extends State<SignScreen> {
         return;
       }
 
-      // 3) 계정 생성
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: email,
         password: pwd,
@@ -179,22 +176,17 @@ class _SignScreenState extends State<SignScreen> {
         return;
       }
 
-      // 표시 이름: 닉네임(필수)
       await user.updateDisplayName(nicknameRaw);
 
-      // 4) 닉네임 예약(원자적) — 경쟁 발생 시 롤백
       try {
         await _reserveNicknameOrThrow(
           nicknameLower: nicknameLower,
           uid: user.uid,
         );
       } catch (e) {
-        // 닉네임 충돌 → 방금 만든 계정 롤백 시도
         try {
-          await user.delete(); // 방금 가입이라 보통 삭제 가능
-        } catch (_) {
-          // 삭제 실패 시에도 사용자에게 안내
-        }
+          await user.delete();
+        } catch (_) {}
         setState(() {
           _error = '이미 사용 중인 닉네임입니다.';
           _isLoading = false;
@@ -202,7 +194,6 @@ class _SignScreenState extends State<SignScreen> {
         return;
       }
 
-      // 5) 프로필 저장
       await _createOrMergeUserProfile(
         user: user,
         email: email,
@@ -212,11 +203,9 @@ class _SignScreenState extends State<SignScreen> {
         nickname: nicknameRaw,
       );
 
-      // 6) 이메일 인증 메일 전송
       await user.sendEmailVerification();
 
       if (!mounted) return;
-      // ✅ 스택 싹 비우고 이메일 인증 안내 화면으로
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/email_verified',
@@ -237,7 +226,6 @@ class _SignScreenState extends State<SignScreen> {
     }
   }
 
-  // ─────────────── 공용 인풋 데코 ───────────────
   InputDecoration _inCardInput({
     String? label,
     String? hint,
@@ -257,6 +245,9 @@ class _SignScreenState extends State<SignScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final buttonHeight = screenHeight * 0.07;
 
+    // 뒤로가기 가능 여부
+    final canPop = Navigator.canPop(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('회원가입'),
@@ -267,7 +258,6 @@ class _SignScreenState extends State<SignScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 성/이름
             CloudCard(
               radius: 20,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -293,7 +283,6 @@ class _SignScreenState extends State<SignScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 닉네임 (필수)
             CloudCard(
               radius: 20,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -305,7 +294,6 @@ class _SignScreenState extends State<SignScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 이메일
             CloudCard(
               radius: 20,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -318,7 +306,6 @@ class _SignScreenState extends State<SignScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 비밀번호
             CloudCard(
               radius: 20,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -330,9 +317,7 @@ class _SignScreenState extends State<SignScreen> {
                   label: '비밀번호',
                   hint: '8자리 이상',
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePwd ? Icons.visibility_off : Icons.visibility,
-                    ),
+                    icon: Icon(_obscurePwd ? Icons.visibility_off : Icons.visibility),
                     onPressed: () => setState(() => _obscurePwd = !_obscurePwd),
                     tooltip: _obscurePwd ? '표시' : '숨기기',
                   ),
@@ -341,7 +326,6 @@ class _SignScreenState extends State<SignScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 비밀번호 확인 (동일 토글)
             CloudCard(
               radius: 20,
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -369,7 +353,6 @@ class _SignScreenState extends State<SignScreen> {
                 ),
               ),
 
-            // 회원가입 버튼
             SizedBox(
               width: double.infinity,
               height: buttonHeight,
@@ -377,7 +360,6 @@ class _SignScreenState extends State<SignScreen> {
                 text: '회원가입 완료하기',
                 isLoading: _isLoading,
                 color: AppTheme.primaryBlue,
-                // 항상 비-널 함수 전달, 내부에서만 상태 체크
                 onPressed: () {
                   if (_isLoading) return;
                   _submit();
@@ -387,19 +369,21 @@ class _SignScreenState extends State<SignScreen> {
 
             const SizedBox(height: 12),
 
-            // 이미 계정이 있나요?
-            Center(
-              child: TextButton(
-                onPressed: () {
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/auth',
-                    (route) => false,
-                  );
-                },
-                child: const Text('이미 계정이 있으신가요? 로그인'),
-              ),
-            ),
+            // 여기: 삼항으로 항상 위젯을 반환(낮은 Dart 버전 호환)
+            (!canPop)
+                ? Center(
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/auth',
+                          (route) => false,
+                        );
+                      },
+                      child: const Text('이미 계정이 있으신가요? 로그인'),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ],
         ),
       ),
